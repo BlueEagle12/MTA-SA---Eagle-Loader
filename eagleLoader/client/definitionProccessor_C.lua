@@ -5,18 +5,16 @@ resourceModels = {}
 
 streamEverything = true
 
-function loadMapDefinitions ( resourceN,dataIn ) -- // Feed this a single line (ID,Zone,DFF,COL,TXD,alphaTransparency,LOD,LODDistance) to load a single definition.
-	resourceModels[resourceN] = {}
+function loadMapDefinitions ( resourceName,mapDefinitions )
+	resourceModels[resourceName] = {}
 	startTickCount = getTickCount ()
-	resource[resourceN] = {}
+	resource[resourceName] = {}
 	
-	resourceName = resourceN
-	
+
 	Async:setPriority("high")
-	Async:foreach(dataIn, function(data)
-		local data = split(data,',')
+	Async:foreach(mapDefinitions, function(data)
 			
-		local modelID,new,exists = requestModelID(data[1],true)
+		local modelID,new,exists = requestModelID(data.id,true)
 		
 		if new then
 			resourceModels[resourceName][modelID] = true
@@ -24,13 +22,11 @@ function loadMapDefinitions ( resourceN,dataIn ) -- // Feed this a single line (
 			
 		if streamEverything or exists then
 			
-			print(data[1])
-			
-			engineSetModelLODDistance (modelID,math.max(tonumber(data[8] or 200),300))
+			engineSetModelLODDistance (modelID,math.max(tonumber(data.lodDistance or 200),300))
 						
-			local LOD = data[7]
+			local LOD = data.lod
 				
-			if (not LOD == 'false') then
+			if LOD and (not LOD == 'false') then
 				if (LOD == 'true') then
 					useLODs[modelID] = modelID
 				else
@@ -39,15 +35,15 @@ function loadMapDefinitions ( resourceN,dataIn ) -- // Feed this a single line (
 			end
 				
 				
-			local zone = data[2]
+			local zone = data.zone
 				
-			local textureString = data[5]
-			local collisionString = data[4]
-			local modelString = data[1]
+			local textureString = data.txd
+			local collisionString = data.col
+			local modelString = data.dff
 					
-			local TXDPath = ':'..resourceName..'/zones/'..zone..'/content/txd/'..textureString..'.txd'
-			local COLPath = ':'..resourceName..'/zones/'..zone..'/content/col/'..collisionString..'.col'
-			local DFFPath = ':'..resourceName..'/zones/'..zone..'/content/dff/'..modelString..'.dff'
+			local TXDPath = ':'..resourceName..'/zones/'..zone..'/txd/'..textureString..'.txd'
+			local COLPath = ':'..resourceName..'/zones/'..zone..'/col/'..collisionString..'.col'
+			local DFFPath = ':'..resourceName..'/zones/'..zone..'/dff/'..modelString..'.dff'
 
 			local texture,textureCache = requestTextureArchive(TXDPath,textureString)
 			local collision,collisionCache = requestCollision(COLPath,collisionString)
@@ -77,16 +73,13 @@ function loadMapDefinitions ( resourceN,dataIn ) -- // Feed this a single line (
 			print('Model : '..modelString..' loaded!')
 		end
 	end)
-	
-	
+
 	loadedFunction(resourceName)
-	
-	
 	
 	Async:setPriority("medium")
 	Async:foreach(getElementsByType("object"), function(object)
 			
-		local LOD = useLODs[getElementData(object,'definitionID')]
+		local LOD = useLODs[getElementID(object)]
 		if LOD then
 			local x,y,z,xr,yr,zr = getElementPosition (object),getElementRotation (object)
 			local nObject = createObject (idCache[LOD],x,y,z,xr,yr,zr,true)
@@ -100,29 +93,6 @@ function loadMapDefinitions ( resourceN,dataIn ) -- // Feed this a single line (
 	end)
 end
 
-		--[[
-		Async:setPriority("medium")
-		Async:foreach(resourceName, function(resourceName)
-			
-			local objects = getElementsByType("object")
-			for _,object in pairs(objects) do
-				local LOD = useLODs[getElementData(object,'definitionID')]
-				if LOD then
-					local x,y,z,xr,yr,zr = getElementPosition (object),getElementRotation (object)
-					local nObject = createObject (idCache[LOD],x,y,z,xr,yr,zr,true)
-					local cull,dimension,interior = isElementDoubleSided(object),getElementDimension(object),getElementInterior(object)
-					setElementDoubleSided(nObject,cull)
-					setElementInterior(nObject,interior)
-					setElementDimension(nObject,dimension)
-					setElementData(nObject,'definitionID',LOD)
-					setLowLODElement(object,nObject)
-				end
-			end
-		end)
-		]]--
-
-
-
 function loadedFunction (resourceName)
 	local endTickCount = getTickCount ()-startTickCount
 	triggerServerEvent ( "onPlayerLoad", resourceRoot, tostring(endTickCount),resourceName )
@@ -131,9 +101,11 @@ end
 
 
 function changeObjectModel (object,newModel)
-	if getElementData(object,'definitionID') then
-		print(getElementData(object,'definitionID')..'- Changed to : '..newModel)
+	local id = (idCache[getElementID(object)] and getElementID(object))
+	
+	if id then
 		if idCache[newModel] then
+			print(id..'- Changed to : '..newModel)
 			setElementModel(object,idCache[newModel])
 			setElementData(object,'definitionID',idCache[newModel])
 			if getLowLODElement(object) then
@@ -160,6 +132,17 @@ addEventHandler( "changeObjectModel", resourceRoot, changeObjectModel )
 
 
 
+function onElementDataChange(dataName, oldValue)
+    if (dataName == "id") then
+        local newId = getElementID(source)
+		if idCache[newId] then
+			if (newId ~= oldValue) then
+				changeObjectModel (source,newId)
+			end
+		end
+    end
+end
+addEventHandler("onElementDataChange", root, onElementDataChange)
 
 function unloadMapDefinitions(name) -- // Feed this the resource name in order to unload the definitions loaded.
 	if resource[name] then
@@ -176,14 +159,17 @@ function unloadMapDefinitions(name) -- // Feed this the resource name in order t
 		end
 	end
 	resource[name] = nil
+	resourceModels[name] = nil
 end
 addEvent( "resourceStop", true )
 addEventHandler( "resourceStop", localPlayer, unloadMapDefinitions )
 
 function onElementDestroy()
-	if getElementType(source) == "object" then
-		if getLowLODElement(source) then
-			destroyElement(getLowLODElement(source))
+	if idCache[getElementID(source)] then -- // Only destroying the LOD if it's a custom model
+		if getElementType(source) == "object" then
+			if getLowLODElement(source) then
+				destroyElement(getLowLODElement(source))
+			end
 		end
 	end
 end

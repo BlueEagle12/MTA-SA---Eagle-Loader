@@ -9,8 +9,9 @@
     <script type="client" src="async.lua" />
     <script type="client" src="client/helper_C.lua" />
     <script type="client" src="client/cache_C.lua" />
-    <script type="client" src="client/processor_C.lua" />
-
+    <script type="client" src="client/definitionProccessor_C.lua" />
+	<script type="client" src="client/mapProccessor_C.lua" />
+	 
     <export function="loadMapDefinitions" type="client" />
     <export function="unloadMapDefinitions" type="client" />
     

@@ -11,7 +11,7 @@ function requestModelID(modelID,setModels)
 	if not objectChecked[modelID] then
 		local objects = getElementsByType("object")
 		for i, object in pairs(objects) do
-			if (getElementData(object,'definitionID') == modelID) then
+			if (getElementID(object) == modelID) then
 				objectValid[modelID] = true
 			end
 		end
@@ -26,7 +26,7 @@ function requestModelID(modelID,setModels)
 	if (setModels and idCache[modelID]) then
 		local objects = getElementsByType("object")
 		for i, object in pairs(objects) do
-			if (getElementData(object,'definitionID') == modelID) then
+			if (getElementID(object) == modelID) then
 				setElementModel(object,idCache[modelID])
 			end
 		end
