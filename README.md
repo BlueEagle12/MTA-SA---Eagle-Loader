@@ -58,3 +58,6 @@ See these two GITHUBs for map creation :
   - Used to unload a map
 * [X] - changeObjectModel - `object,newID`
   - Used to set an objects custom model (Changing objects ID will do the same thing!)
+
+
+[Discord](https://discord.gg/dp5sp7tD3B)
