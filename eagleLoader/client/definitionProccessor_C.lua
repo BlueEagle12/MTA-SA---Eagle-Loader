@@ -4,8 +4,9 @@ resource = {}
 resourceModels = {}
 
 streamEverything = true
+streamingDistances = {}
 
-function loadMapDefinitions ( resourceName,mapDefinitions )
+function loadMapDefinitions ( resourceName,mapDefinitions,last)
 	resourceModels[resourceName] = {}
 	startTickCount = getTickCount ()
 	resource[resourceName] = {}
@@ -22,19 +23,19 @@ function loadMapDefinitions ( resourceName,mapDefinitions )
 			
 		if streamEverything or exists then
 			
-			engineSetModelLODDistance (modelID,math.max(tonumber(data.lodDistance or 200),300))
-						
+			engineSetModelLODDistance (modelID,tonumber(data.lodDistance or 200))
+			streamingDistances[modelID] = (tonumber(data.lodDistance or 200))
+
+			
 			local LOD = data.lod
+			local LODID = data.lodID
 				
-			if LOD and (not LOD == 'false') then
+			if LOD then
 				if (LOD == 'true') then
-					useLODs[modelID] = modelID
-				else
-					useLODs[modelID] = LOD
+					useLODs[data.id] = (data.lodID or data.id)
 				end
 			end
-				
-				
+			
 			local zone = data.zone
 				
 			local textureString = data.txd
@@ -44,46 +45,68 @@ function loadMapDefinitions ( resourceName,mapDefinitions )
 			local TXDPath = ':'..resourceName..'/zones/'..zone..'/txd/'..textureString..'.txd'
 			local COLPath = ':'..resourceName..'/zones/'..zone..'/col/'..collisionString..'.col'
 			local DFFPath = ':'..resourceName..'/zones/'..zone..'/dff/'..modelString..'.dff'
-
-			local texture,textureCache = requestTextureArchive(TXDPath,textureString)
-			local collision,collisionCache = requestCollision(COLPath,collisionString)
-			local model,modelCache = requestModel(DFFPath)
+			
+			if not (data.default == 'true') then
+			
+				local texture,textureCache = requestTextureArchive(TXDPath,textureString)
+				local collision,collisionCache = requestCollision(COLPath,collisionString)
+				local model,modelCache = requestModel(DFFPath)
+					
+					
+				if collision then
+					engineReplaceCOL(collision,modelID)
+					table.insert(resource[resourceName],collisionCache)
+				else
+					print('Collision : '..collisionString..' could not be loaded!')
+				end
 				
-				
-			if collision then
-				engineReplaceCOL(collision,modelID)
-				table.insert(resource[resourceName],collisionCache)
-			else
-				print('Collision : '..collisionString..' could not be loaded!')
+				if texture then
+					engineImportTXD(texture,modelID)
+					table.insert(resource[resourceName],textureCache)
+				else
+					print('Texture : '..textureString..' could not be loaded!')
+				end
+					
+				if model then
+					if (data.alphaTransparency == 'true') then
+						engineReplaceModel(model,modelID,true)
+					else
+						engineReplaceModel(model,modelID)
+					end
+					table.insert(resource[resourceName],modelCache)
+				else
+					print('Model : '..modelString..' could not be loaded!')
+				end
+				--print('Model : '..modelString..' loaded!')
 			end
 			
-			if texture then
-				engineImportTXD(texture,modelID)
-				table.insert(resource[resourceName],textureCache)
-			else
-				print('Texture : '..textureString..' could not be loaded!')
+			
+			if data.timeIn then
+				print(data.timeIn)
+				setModelStreamTime (modelID, tonumber(data.timeIn), tonumber(data.timeOut))
 			end
-				
-			if model then
-				engineReplaceModel(model,modelID)
-				table.insert(resource[resourceName],modelCache)
-			else
-				print('Model : '..modelString..' could not be loaded!')
+			
+			if (data.id == last) then
+				loadedFunction (resourceName)
+				prepLODs()
 			end
-			print('Model : '..modelString..' loaded!')
 		end
 	end)
+end
 
-	loadedFunction(resourceName)
-	
+function prepLODs()
 	Async:setPriority("medium")
 	Async:foreach(getElementsByType("object"), function(object)
-			
+
 		local LOD = useLODs[getElementID(object)]
 		if LOD then
-			local x,y,z,xr,yr,zr = getElementPosition (object),getElementRotation (object)
+			local x,y,z = getElementPosition (object)
+			local xr,yr,zr = getElementRotation (object)
 			local nObject = createObject (idCache[LOD],x,y,z,xr,yr,zr,true)
-			local cull,dimension,interior = isElementDoubleSided(object),getElementDimension(object),getElementInterior(object)
+			local cull = isElementDoubleSided(object)
+			local dimension = getElementDimension(object)
+			local interior  = getElementInterior(object)
+			
 			setElementDoubleSided(nObject,cull)
 			setElementInterior(nObject,interior)
 			setElementDimension(nObject,dimension)

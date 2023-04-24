@@ -11,11 +11,23 @@ function onResourceStart(resourceThatStarted)
 	local resourceName = getResourceName(resourceThatStarted)
 	local path = ((":%s/%s"):format(resourceName,'eagleZones.txt'))
 	local exists = fileExists(path) --// We want to check if the resource has an eagleZones file, this is so we don't have to go through server side which may cause issues.
+	local definitionList = {}
+	
 	if exists then
 		local zones = getLines(fileOpen(path))
 		for _,zone in pairs(zones) do
-			loadZone(resourceName,zone)
+			local list = loadZone(resourceName,zone)
+			for i,v in pairs(list) do
+				table.insert(definitionList,v)
+			end
 		end
+	end
+	
+
+	local last = definitionList[#definitionList]
+	if last then
+		local lastID = last.id
+		loadMapDefinitions(resourceName,definitionList,lastID)
 	end
 end
 
@@ -35,7 +47,7 @@ function loadZone(resourceName,zone)
 		table.insert(newTable,attributes)
 	end
 	
-	loadMapDefinitions(resourceName,newTable)
 	xmlUnloadFile(zoneDefinitions)
+	return newTable
 end
 
