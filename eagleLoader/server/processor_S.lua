@@ -16,7 +16,9 @@ function changeObjectModel(object,newModel)
 end
 
 function playerLoaded ( loadTime,resource )
-	print(getPlayerName(client),'Loaded '..resource..' In : '..(tonumber(loadTime)*0.01),' Secounds')
+	local minutes = tonumber(loadTime) / (1000 * 60)
+	
+	print(getPlayerName(client),'Loaded '..resource..' In : '..(minutes),' Minutes')
 end
 addEvent( "onPlayerLoad", true )
 addEventHandler( "onPlayerLoad", resourceRoot, playerLoaded )
