@@ -15,39 +15,39 @@ function loadMapDefinitions ( resourceName,mapDefinitions,last)
 	Async:setPriority("high")
 	Async:foreach(mapDefinitions, function(data)
 			
-		local modelID,new,exists = requestModelID(data.id,true)
-		
-		if new then
-			resourceModels[resourceName][modelID] = true
-		end
+		if not (data.default == 'true') then
 			
-		if streamEverything or exists then
+			local modelID,new,exists = requestModelID(data.id,true)
 			
-			engineSetModelLODDistance (modelID,tonumber(data.lodDistance or 200))
-			streamingDistances[modelID] = (tonumber(data.lodDistance or 200))
-
-			
-			local LOD = data.lod
-			local LODID = data.lodID
-				
-			if LOD then
-				if (LOD == 'true') then
-					useLODs[data.id] = (data.lodID or data.id)
-				end
+			if new then
+				resourceModels[resourceName][modelID] = true
 			end
-			
-			local zone = data.zone
 				
-			local textureString = data.txd
-			local collisionString = data.col
-			local modelString = data.dff
+			if streamEverything or exists then
+				
+				engineSetModelLODDistance (modelID,tonumber(data.lodDistance or 200))
+				streamingDistances[modelID] = (tonumber(data.lodDistance or 200))
+
+				
+				local LOD = data.lod
+				local LODID = data.lodID
 					
-			local TXDPath = ':'..resourceName..'/zones/'..zone..'/txd/'..textureString..'.txd'
-			local COLPath = ':'..resourceName..'/zones/'..zone..'/col/'..collisionString..'.col'
-			local DFFPath = ':'..resourceName..'/zones/'..zone..'/dff/'..modelString..'.dff'
-			
-			if not (data.default == 'true') then
-			
+				if LOD then
+					if (LOD == 'true') then
+						useLODs[data.id] = (data.lodID or data.id)
+					end
+				end
+				
+				local zone = data.zone
+					
+				local textureString = data.txd
+				local collisionString = data.col
+				local modelString = data.dff
+						
+				local TXDPath = ':'..resourceName..'/zones/'..zone..'/txd/'..textureString..'.txd'
+				local COLPath = ':'..resourceName..'/zones/'..zone..'/col/'..collisionString..'.col'
+				local DFFPath = ':'..resourceName..'/zones/'..zone..'/dff/'..modelString..'.dff'
+
 				local texture,textureCache = requestTextureArchive(TXDPath,textureString)
 				local collision,collisionCache = requestCollision(COLPath,collisionString)
 				local model,modelCache = requestModel(DFFPath)
@@ -123,14 +123,18 @@ function loadedFunction (resourceName)
 end
 
 
-function changeObjectModel (object,newModel)
-	local id = (idCache[getElementID(object)] and getElementID(object))
+function changeObjectModel (object,newModel,streamNew)
+	local id = getElementID(object)
 	
-	if id then
+	if id or streamNew then
 		if idCache[newModel] then
-			print(id..'- Changed to : '..newModel)
+			if id then
+				print(id..'- Changed to : '..newModel)
+			else
+				print('New object streamed with ID: '..newModel)
+			end
 			setElementModel(object,idCache[newModel])
-			setElementData(object,'definitionID',idCache[newModel])
+			setElementID(object,newModel)
 			if getLowLODElement(object) then
 				local LOD = getLowLODElement(object)
 				if LOD then
@@ -139,19 +143,32 @@ function changeObjectModel (object,newModel)
 				
 				if useLODs[newModel] then -- // Create new LOD if this model has a LOD assigned to it
 					local x,y,z,xr,yr,zr = getElementPosition (object),getElementRotation (object)
-					local nObject = createObject (idCache[LOD],x,y,z,xr,yr,zr,true)
+					local nObject = createObject (idCache[newModel],x,y,z,xr,yr,zr,true)
 					local cull,dimension,interior = isElementDoubleSided(object),getElementDimension(object),getElementInterior(object)
 					setElementDoubleSided(nObject,cull)
 					setElementInterior(nObject,interior)
 					setElementDimension(nObject,dimension)
-					setElementData(nObject,'definitionID',LOD)
+					setElementID(nObject,newModel)
 					setLowLODElement(object,nObject)
+					attachElements(nObject,object)
 				end
 			end
 		end
 	end
 end
+addEvent( "changeObjectModel", true )
 addEventHandler( "changeObjectModel", resourceRoot, changeObjectModel )
+
+
+function streamObject(id,x,y,z,xr,yr,zr)
+	local x = x or 0
+	local y = y or 0
+	local z = z or 0
+	local obj = createObject(1337,x,y,z,xr,yr,zr)
+	changeObjectModel(obj,id,true)
+	setElementID(obj,id)
+	return obj
+end
 
 
 

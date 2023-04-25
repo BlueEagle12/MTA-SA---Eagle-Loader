@@ -14,9 +14,10 @@
     
     <export function="loadMapDefinitions" type="client" />
     <export function="unloadMapDefinitions" type="client" />
-    
+    <export function="streamObject" type="client" />
+	
     <export function="getMaps" type="server" />
     <export function="changeObjectModel" type="server" />
-    
+    <export function="streamObject" type="server" />
     
 </meta>
