@@ -12,7 +12,7 @@ if removeDefaultMap then
 end
 
 function changeObjectModel(object,newModel)
-	triggerServerEvent ( root,"changeObjectModel", root, object,newModel )
+	triggerClientEvent ( resourceRoot,"changeObjectModel", root, object,newModel )
 end
 
 function playerLoaded ( loadTime,resource )
@@ -29,3 +29,12 @@ function onResourceStop(resource) -- // Trigger the client event on resource sto
 	triggerClientEvent ( root, "resourceStop", root, rName )
 end
 addEventHandler( "onResourceStop", root, onResourceStop)
+
+function streamObject(id,x,y,z,xr,yr,zr)
+	local x = x or 0
+	local y = y or 0
+	local z = z or 0
+	local obj = createObject(1337,x,y,z,xr,yr,zr)
+	setElementID(obj,id)
+	return obj
+end
