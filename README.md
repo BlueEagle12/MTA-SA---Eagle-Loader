@@ -1,6 +1,6 @@
 # Eagle Map Loader | MTA:SA
 
-Eagle map loader is a resource for MTA:SA that allows for easy loading and proccessing of custom maps
+Eagle map loader is a resource for MTA:SA that allows for easy and nearly instant loading and proccessing of custom maps
 
 ## Supported Features
 
