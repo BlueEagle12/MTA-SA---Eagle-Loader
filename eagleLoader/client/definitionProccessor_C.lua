@@ -24,7 +24,7 @@ function loadMapDefinitions ( resourceName,mapDefinitions,last)
 	end
 	
 	
-	Async:setPriority("high")
+	Async:setPriority("medium")
 	Async:foreach(mapDefinitions, function(data)
 			
 		if not (data.default == 'true') then
@@ -42,7 +42,21 @@ function loadMapDefinitions ( resourceName,mapDefinitions,last)
 					local zone = data.zone
 					
 					definitionZones[modelID] = zone
+					
+					engineSetModelLODDistance (modelID,tonumber(data.lodDistance or 200))
+					streamingDistances[modelID] = (tonumber(data.lodDistance or 200))
+
+					local LOD = data.lod
+					local LODID = data.lodID
 						
+					if LOD then
+						if (LOD == 'true') then
+							useLODs[data.id] = (data.lodID or data.id)
+						end
+					end
+						
+					-- // Textures
+					
 					local textureString = data.txd
 
 					local TXDPath = ':'..resourceName..'/zones/'..zone..'/txd/'..textureString..'.txd'
@@ -53,45 +67,27 @@ function loadMapDefinitions ( resourceName,mapDefinitions,last)
 						engineImportTXD(texture,modelID)
 						table.insert(resource[resourceName],textureCache)
 						
-						if (data.id == last) then
-							loadModels (resourceName,mapDefinitions,last)
-						end
 					else
 						print('Texture : '..textureString..' could not be loaded!')
 					end
-				end
-			end
-		end
-	end)
-end
-
-function loadModels(resourceName,mapDefinitions,last)
-	Async:setPriority("medium")
-	Async:foreach(mapDefinitions, function(data)
-			
-		if not (data.default == 'true') then
-			
-			local modelID,_,exists = requestModelID(data.id)
-			
-			if modelID then
-				
-				if streamEverything or validID[data.id] then
 					
-					engineSetModelLODDistance (modelID,tonumber(data.lodDistance or 200))
-					streamingDistances[modelID] = (tonumber(data.lodDistance or 200))
-
+					-- // Collisions
 					
-					local LOD = data.lod
-					local LODID = data.lodID
-						
-					if LOD then
-						if (LOD == 'true') then
-							useLODs[data.id] = (data.lodID or data.id)
-						end
+					local collisionString = data.col
+
+					local COLPath = ':'..resourceName..'/zones/'..zone..'/col/'..collisionString..'.col'
+
+					local collision,collisionCache = requestCollision(COLPath,collisionString)
+
+					if collision then
+						engineReplaceCOL(collision,modelID)
+						table.insert(resource[resourceName],collisionCache)
+					else
+						print('Collision : '..collisionString..' could not be loaded!')
 					end
 					
-					local zone = data.zone
-						
+					-- // Models
+					
 					local modelString = data.dff
 					
 					local DFFPath = ':'..resourceName..'/zones/'..zone..'/dff/'..modelString..'.dff'
@@ -107,75 +103,23 @@ function loadModels(resourceName,mapDefinitions,last)
 					else
 						print('Model : '..modelString..' could not be loaded!')
 					end
-				end
-
-				if data.timeIn then
-					setModelStreamTime (modelID, tonumber(data.timeIn), tonumber(data.timeOut))
-				end
-				
-				if (data.id == last) then
-					loaded (resourceName,true)
-				end
-			else
-				print('Object : '..data.id..' could not be loaded! : OUT OF IDs')
-			end
-		end
-	end)
-	
-	Async:setPriority("medium")
-	Async:foreach(mapDefinitions, function(data)
-			
-		if not (data.default == 'true') then
-			
-			local modelID,_,exists = requestModelID(data.id)
-			
-			if modelID then
-				if streamEverything or validID[data.id] then
 					
-					local zone = data.zone
-						
-					local collisionString = data.col
-
-					local COLPath = ':'..resourceName..'/zones/'..zone..'/col/'..collisionString..'.col'
-
-					local collision,collisionCache = requestCollision(COLPath,collisionString)
-
-					if collision then
-						engineReplaceCOL(collision,modelID)
-						table.insert(resource[resourceName],collisionCache)
-					else
-						print('Collision : '..collisionString..' could not be loaded!')
+					if data.timeIn then
+						setModelStreamTime (modelID, tonumber(data.timeIn), tonumber(data.timeOut))
 					end
 				end
 				
 				if (data.id == last) then
-					loaded(resourceName,false)
+					loaded(resourceName)
 				end
-			else
-				print('Object : '..data.id..' could not be loaded! : OUT OF IDs')
 			end
 		end
 	end)
 end
 
-resourceLoaded = {}
-resourceLoaded['Models'] = {}
-resourceLoaded['Collisions'] = {}
-
-function loaded(resourceName,DFF)
-	if DFF then
-		resourceLoaded['Models'][resourceName] = true
-		if resourceLoaded['Collisions'][resourceName] then
-			loadedFunction (resourceName)
-			initializeObjects()
-		end
-	else
-		resourceLoaded['Collisions'][resourceName] = true
-		if resourceLoaded['Models'][resourceName] then
-			loadedFunction (resourceName)
-			initializeObjects()
-		end
-	end
+function loaded(resourceName)
+	loadedFunction (resourceName)
+	initializeObjects()
 end
 					
 

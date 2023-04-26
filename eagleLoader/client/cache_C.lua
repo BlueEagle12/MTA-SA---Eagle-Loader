@@ -5,7 +5,7 @@ useLODs = {}
 
 allowcateDefaultIDs = true --// If we're out of custom IDs can we dig into SA?
 
-function requestModelID(modelID,setModels)
+function requestModelID(modelID)
 
 	if not idCache[modelID] then
 		idCache[modelID] = engineRequestModel('object')
