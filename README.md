@@ -28,12 +28,7 @@ The following is a list of features this resource provides
 - [ ] Object Effects
   - [ ] Vegitation swaying
   - [ ] Moving objects EX : LCs draw bridge
-  - [ ] Day time & Night time only objects
-  
-#### Misc
-
-- [ ] Custom water placement
-  
+  - [X] Day time & Night time only objects
 
 ## Usage
 
