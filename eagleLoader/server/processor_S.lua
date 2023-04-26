@@ -8,7 +8,6 @@ if removeDefaultMap then
 		removeWorldModel(i,10000,0,0,0)
 	end
 	setOcclusionsEnabled(false)
-	setWaterLevel(-5000)
 end
 
 function changeObjectModel(object,newModel)

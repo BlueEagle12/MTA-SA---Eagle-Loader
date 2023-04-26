@@ -1,10 +1,16 @@
 
 -- Tables --
-resource = {}
-resourceModels = {}
+resource		    = {}
+resourceModels 	 	= {}
 
-streamEverything = true
-streamingDistances = {}
+streamingDistances  = {}
+
+validID 			= {}
+streamEverything    = true
+
+definitionZones     = {}
+lodAttach 			= {}
+lodAttach['tram']   = true
 
 function loadMapDefinitions ( resourceName,mapDefinitions,last)
 	resourceModels[resourceName] = {}
@@ -12,12 +18,18 @@ function loadMapDefinitions ( resourceName,mapDefinitions,last)
 	resource[resourceName] = {}
 	
 
+	for i,v in pairs(getElementsByType('object')) do -- // Loop through all of the objects and mark which IDs exist
+		local id = getElementID(v)
+		validID[id] = true
+	end
+	
+	
 	Async:setPriority("high")
 	Async:foreach(mapDefinitions, function(data)
 			
 		if not (data.default == 'true') then
 			
-			local modelID,new,exists = requestModelID(data.id,true)
+			local modelID,new = requestModelID(data.id,true)
 			
 			if modelID then
 				
@@ -25,9 +37,11 @@ function loadMapDefinitions ( resourceName,mapDefinitions,last)
 					resourceModels[resourceName][modelID] = true
 				end
 					
-				if streamEverything or exists then
+				if streamEverything or validID[data.id] then
 					
 					local zone = data.zone
+					
+					definitionZones[modelID] = zone
 						
 					local textureString = data.txd
 
@@ -52,7 +66,7 @@ function loadMapDefinitions ( resourceName,mapDefinitions,last)
 end
 
 function loadModels(resourceName,mapDefinitions,last)
-	Async:setPriority("high")
+	Async:setPriority("medium")
 	Async:foreach(mapDefinitions, function(data)
 			
 		if not (data.default == 'true') then
@@ -61,7 +75,7 @@ function loadModels(resourceName,mapDefinitions,last)
 			
 			if modelID then
 				
-				if streamEverything or exists then
+				if streamEverything or validID[data.id] then
 					
 					engineSetModelLODDistance (modelID,tonumber(data.lodDistance or 200))
 					streamingDistances[modelID] = (tonumber(data.lodDistance or 200))
@@ -96,7 +110,6 @@ function loadModels(resourceName,mapDefinitions,last)
 				end
 
 				if data.timeIn then
-					print(data.timeIn)
 					setModelStreamTime (modelID, tonumber(data.timeIn), tonumber(data.timeOut))
 				end
 				
@@ -109,7 +122,7 @@ function loadModels(resourceName,mapDefinitions,last)
 		end
 	end)
 	
-	Async:setPriority("high")
+	Async:setPriority("medium")
 	Async:foreach(mapDefinitions, function(data)
 			
 		if not (data.default == 'true') then
@@ -117,7 +130,7 @@ function loadModels(resourceName,mapDefinitions,last)
 			local modelID,_,exists = requestModelID(data.id)
 			
 			if modelID then
-				if streamEverything or exists then
+				if streamEverything or validID[data.id] then
 					
 					local zone = data.zone
 						
@@ -154,37 +167,24 @@ function loaded(resourceName,DFF)
 		resourceLoaded['Models'][resourceName] = true
 		if resourceLoaded['Collisions'][resourceName] then
 			loadedFunction (resourceName)
-			prepLODs()
+			initializeObjects()
 		end
 	else
 		resourceLoaded['Collisions'][resourceName] = true
 		if resourceLoaded['Models'][resourceName] then
 			loadedFunction (resourceName)
-			prepLODs()
+			initializeObjects()
 		end
 	end
 end
 					
 
-function prepLODs()
+function initializeObjects()
 	Async:setPriority("medium")
 	Async:foreach(getElementsByType("object"), function(object)
-
-		local LOD = useLODs[getElementID(object)]
-		if LOD then
-			local x,y,z = getElementPosition (object)
-			local xr,yr,zr = getElementRotation (object)
-			local nObject = createObject (idCache[LOD],x,y,z,xr,yr,zr,true)
-			local cull = isElementDoubleSided(object)
-			local dimension = getElementDimension(object)
-			local interior  = getElementInterior(object)
-			
-			setElementDoubleSided(nObject,cull)
-			setElementInterior(nObject,interior)
-			setElementDimension(nObject,dimension)
-			setElementData(nObject,'definitionID',LOD)
-			setLowLODElement(object,nObject)
-		end
+	
+		local id = getElementID(object)
+		changeObjectModel(object,id,true,true)
 	end)
 end
 
@@ -195,33 +195,38 @@ function loadedFunction (resourceName)
 end
 
 
-function changeObjectModel (object,newModel,streamNew)
+function changeObjectModel (object,newModel,streamNew,inital)
 	local id = getElementID(object)
 	
 	if id or streamNew then
 		if idCache[newModel] then
-			if id then
-				print(id..'- Changed to : '..newModel)
-			else
-				print('New object streamed with ID: '..newModel)
+			if not inital then
+				if id then
+					print(id..'- Changed to : '..newModel)
+				else
+					print('New object streamed with ID: '..newModel)
+				end
 			end
 			setElementModel(object,idCache[newModel])
 			setElementID(object,newModel)
-			if getLowLODElement(object) then
-				local LOD = getLowLODElement(object)
-				if LOD then
-					destroyElement(LOD) -- // Clear LOD if it exists
-				end
+			setElementData(object,'Zone',definitionZones[id])
+			local LOD = getLowLODElement(object)
+			if LOD then
+				destroyElement(LOD) -- // Clear LOD if it exists
+			end
 				
-				if useLODs[newModel] then -- // Create new LOD if this model has a LOD assigned to it
-					local x,y,z,xr,yr,zr = getElementPosition (object),getElementRotation (object)
-					local nObject = createObject (idCache[newModel],x,y,z,xr,yr,zr,true)
-					local cull,dimension,interior = isElementDoubleSided(object),getElementDimension(object),getElementInterior(object)
-					setElementDoubleSided(nObject,cull)
-					setElementInterior(nObject,interior)
-					setElementDimension(nObject,dimension)
-					setElementID(nObject,newModel)
-					setLowLODElement(object,nObject)
+			if useLODs[newModel] then -- // Create new LOD if this model has a LOD assigned to it
+				local x,y,z,xr,yr,zr = getElementPosition (object)
+				local xr,yr,zr = getElementRotation (object)
+				local nObject = createObject (idCache[newModel],x,y,z,xr,yr,zr,true)
+				local cull,dimension,interior = isElementDoubleSided(object),getElementDimension(object),getElementInterior(object)
+				setElementData(nObject,'Zone',definitionZones[newModel])
+				setElementDoubleSided(nObject,cull)
+				setElementInterior(nObject,interior)
+				setElementDimension(nObject,dimension)
+				setElementID(nObject,newModel)
+				setLowLODElement(object,nObject)
+				if lodAttach[newModel] then
 					attachElements(nObject,object)
 				end
 			end
@@ -258,14 +263,6 @@ addEventHandler("onElementDataChange", root, onElementDataChange)
 
 function unloadMapDefinitions(name) -- // Feed this the resource name in order to unload the definitions loaded.
 	if resource[name] then
-		Async:setPriority("medium")
-		Async:foreach(resource[name], function(data)
-			if cache[data] then
-				destroyElement(cache[data])
-				cache[data] = nil
-			end
-		end)
-		
 		for ID,_ in pairs(resourceModels[name]) do
 			engineFreeModel(ID)
 		end
