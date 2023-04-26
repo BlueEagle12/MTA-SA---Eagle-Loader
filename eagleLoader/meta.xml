@@ -12,6 +12,9 @@
     <script type="client" src="client/definitionProccessor_C.lua" />
     <script type="client" src="client/mapProccessor_C.lua" />
     
+    <script type="client" src="client/validID/idListPrep.lua" />
+    <file type="client" src="client/validID/sa_id_list.ID" />
+	
     <export function="loadMapDefinitions" type="client" />
     <export function="unloadMapDefinitions" type="client" />
     <export function="streamObject" type="client" />

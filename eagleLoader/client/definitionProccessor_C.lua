@@ -19,80 +19,152 @@ function loadMapDefinitions ( resourceName,mapDefinitions,last)
 			
 			local modelID,new,exists = requestModelID(data.id,true)
 			
-			if new then
-				resourceModels[resourceName][modelID] = true
-			end
+			if modelID then
 				
-			if streamEverything or exists then
-				
-				engineSetModelLODDistance (modelID,tonumber(data.lodDistance or 200))
-				streamingDistances[modelID] = (tonumber(data.lodDistance or 200))
-
-				
-				local LOD = data.lod
-				local LODID = data.lodID
-					
-				if LOD then
-					if (LOD == 'true') then
-						useLODs[data.id] = (data.lodID or data.id)
-					end
+				if new then
+					resourceModels[resourceName][modelID] = true
 				end
-				
-				local zone = data.zone
 					
-				local textureString = data.txd
-				local collisionString = data.col
-				local modelString = data.dff
+				if streamEverything or exists then
+					
+					local zone = data.zone
 						
-				local TXDPath = ':'..resourceName..'/zones/'..zone..'/txd/'..textureString..'.txd'
-				local COLPath = ':'..resourceName..'/zones/'..zone..'/col/'..collisionString..'.col'
-				local DFFPath = ':'..resourceName..'/zones/'..zone..'/dff/'..modelString..'.dff'
+					local textureString = data.txd
 
-				local texture,textureCache = requestTextureArchive(TXDPath,textureString)
-				local collision,collisionCache = requestCollision(COLPath,collisionString)
-				local model,modelCache = requestModel(DFFPath)
-					
-					
-				if collision then
-					engineReplaceCOL(collision,modelID)
-					table.insert(resource[resourceName],collisionCache)
-				else
-					print('Collision : '..collisionString..' could not be loaded!')
-				end
-				
-				if texture then
-					engineImportTXD(texture,modelID)
-					table.insert(resource[resourceName],textureCache)
-				else
-					print('Texture : '..textureString..' could not be loaded!')
-				end
-					
-				if model then
-					if (data.alphaTransparency == 'true') then
-						engineReplaceModel(model,modelID,true)
+					local TXDPath = ':'..resourceName..'/zones/'..zone..'/txd/'..textureString..'.txd'
+
+					local texture,textureCache = requestTextureArchive(TXDPath,textureString)
+
+					if texture then
+						engineImportTXD(texture,modelID)
+						table.insert(resource[resourceName],textureCache)
+						
+						if (data.id == last) then
+							loadModels (resourceName,mapDefinitions,last)
+						end
 					else
-						engineReplaceModel(model,modelID)
+						print('Texture : '..textureString..' could not be loaded!')
 					end
-					table.insert(resource[resourceName],modelCache)
-				else
-					print('Model : '..modelString..' could not be loaded!')
 				end
-				--print('Model : '..modelString..' loaded!')
-			end
-			
-			
-			if data.timeIn then
-				print(data.timeIn)
-				setModelStreamTime (modelID, tonumber(data.timeIn), tonumber(data.timeOut))
-			end
-			
-			if (data.id == last) then
-				loadedFunction (resourceName)
-				prepLODs()
 			end
 		end
 	end)
 end
+
+function loadModels(resourceName,mapDefinitions,last)
+	Async:setPriority("high")
+	Async:foreach(mapDefinitions, function(data)
+			
+		if not (data.default == 'true') then
+			
+			local modelID,_,exists = requestModelID(data.id)
+			
+			if modelID then
+				
+				if streamEverything or exists then
+					
+					engineSetModelLODDistance (modelID,tonumber(data.lodDistance or 200))
+					streamingDistances[modelID] = (tonumber(data.lodDistance or 200))
+
+					
+					local LOD = data.lod
+					local LODID = data.lodID
+						
+					if LOD then
+						if (LOD == 'true') then
+							useLODs[data.id] = (data.lodID or data.id)
+						end
+					end
+					
+					local zone = data.zone
+						
+					local modelString = data.dff
+					
+					local DFFPath = ':'..resourceName..'/zones/'..zone..'/dff/'..modelString..'.dff'
+					local model,modelCache = requestModel(DFFPath)
+						
+					if model then
+						if (data.alphaTransparency == 'true') then
+							engineReplaceModel(model,modelID,true)
+						else
+							engineReplaceModel(model,modelID)
+						end
+						table.insert(resource[resourceName],modelCache)
+					else
+						print('Model : '..modelString..' could not be loaded!')
+					end
+				end
+
+				if data.timeIn then
+					print(data.timeIn)
+					setModelStreamTime (modelID, tonumber(data.timeIn), tonumber(data.timeOut))
+				end
+				
+				if (data.id == last) then
+					loaded (resourceName,true)
+				end
+			else
+				print('Object : '..data.id..' could not be loaded! : OUT OF IDs')
+			end
+		end
+	end)
+	
+	Async:setPriority("high")
+	Async:foreach(mapDefinitions, function(data)
+			
+		if not (data.default == 'true') then
+			
+			local modelID,_,exists = requestModelID(data.id)
+			
+			if modelID then
+				if streamEverything or exists then
+					
+					local zone = data.zone
+						
+					local collisionString = data.col
+
+					local COLPath = ':'..resourceName..'/zones/'..zone..'/col/'..collisionString..'.col'
+
+					local collision,collisionCache = requestCollision(COLPath,collisionString)
+
+					if collision then
+						engineReplaceCOL(collision,modelID)
+						table.insert(resource[resourceName],collisionCache)
+					else
+						print('Collision : '..collisionString..' could not be loaded!')
+					end
+				end
+				
+				if (data.id == last) then
+					loaded(resourceName,false)
+				end
+			else
+				print('Object : '..data.id..' could not be loaded! : OUT OF IDs')
+			end
+		end
+	end)
+end
+
+resourceLoaded = {}
+resourceLoaded['Models'] = {}
+resourceLoaded['Collisions'] = {}
+
+function loaded(resourceName,DFF)
+	if DFF then
+		resourceLoaded['Models'][resourceName] = true
+		if resourceLoaded['Collisions'][resourceName] then
+			loadedFunction (resourceName)
+			prepLODs()
+		end
+	else
+		resourceLoaded['Collisions'][resourceName] = true
+		if resourceLoaded['Models'][resourceName] then
+			loadedFunction (resourceName)
+			prepLODs()
+		end
+	end
+end
+					
 
 function prepLODs()
 	Async:setPriority("medium")

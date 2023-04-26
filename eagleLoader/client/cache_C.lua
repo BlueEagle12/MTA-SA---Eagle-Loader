@@ -5,6 +5,7 @@ useLODs = {}
 objectValid = {}
 objectChecked = {}
 
+allowcateDefaultIDs = true --// If we're out of custom IDs can we dig into SA?
 
 function requestModelID(modelID,setModels)
 	
@@ -21,6 +22,12 @@ function requestModelID(modelID,setModels)
 	
 	if not idCache[modelID] then
 		idCache[modelID] = engineRequestModel('object')
+		
+		if not idCache[modelID] then
+			if allowcateDefaultIDs then
+				idCache[modelID] = engineRequestSAModel('object')
+			end
+		end
 	end
 	
 	if (setModels and idCache[modelID]) then
