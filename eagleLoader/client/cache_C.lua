@@ -2,38 +2,24 @@
 globalCache = {}
 idCache = {}
 useLODs = {}
-objectValid = {}
-objectChecked = {}
 
+allowcateDefaultIDs = true --// If we're out of custom IDs can we dig into SA?
 
-function requestModelID(modelID,setModels)
-	
-	if not objectChecked[modelID] then
-		local objects = getElementsByType("object")
-		for i, object in pairs(objects) do
-			if (getElementID(object) == modelID) then
-				objectValid[modelID] = true
-			end
-		end
-	end
-	
-	objectChecked[modelID] = true
-	
+function requestModelID(modelID)
+
 	if not idCache[modelID] then
 		idCache[modelID] = engineRequestModel('object')
-	end
-	
-	if (setModels and idCache[modelID]) then
-		local objects = getElementsByType("object")
-		for i, object in pairs(objects) do
-			if (getElementID(object) == modelID) then
-				setElementModel(object,idCache[modelID])
+		
+		if not idCache[modelID] then
+			if allowcateDefaultIDs then
+				idCache[modelID] = engineRequestSAModel('object')
 			end
 		end
+		return idCache[modelID],true
 	end
 		
 
-	return idCache[modelID],false,objectValid[modelID]
+	return idCache[modelID]
 end
 
 function requestTextureArchive(path)
