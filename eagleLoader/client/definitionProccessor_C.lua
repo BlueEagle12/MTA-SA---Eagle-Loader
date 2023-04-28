@@ -8,11 +8,23 @@ streamingDistances  = {}
 validID 			= {}
 streamEverything    = true
 
+timeTableID         = {}
+timeTable           = {}
+
 definitionZones     = {}
+idObjectProperties  = {}
 lodAttach 			= {}
 lodAttach['tram']   = true
 
+failed              = {}
+
 function loadMapDefinitions ( resourceName,mapDefinitions,last)
+
+	if globalCache[resourceName] then
+		releaseCatche(resourceName)
+	end
+	
+	globalCache[resourceName] = {}
 	resourceModels[resourceName] = {}
 	startTickCount = getTickCount ()
 	resource[resourceName] = {}
@@ -20,30 +32,34 @@ function loadMapDefinitions ( resourceName,mapDefinitions,last)
 
 	for i,v in pairs(getElementsByType('object')) do -- // Loop through all of the objects and mark which IDs exist
 		local id = getElementID(v)
+		
+		local lodID = getElementData(v,'lodID')
+		validID[lodID] = true
 		validID[id] = true
 	end
 	
-	
+
 	Async:setPriority("medium")
 	Async:foreach(mapDefinitions, function(data)
 			
 		if not (data.default == 'true') then
 			
 			local modelID,new = requestModelID(data.id,true)
-			
+
 			if modelID then
+				
 				
 				if new then
 					resourceModels[resourceName][modelID] = true
 				end
 					
 				if streamEverything or validID[data.id] then
-					
+
 					local zone = data.zone
 					
 					definitionZones[modelID] = zone
 					
-					engineSetModelLODDistance (modelID,tonumber(data.lodDistance or 200))
+					engineSetModelLODDistance (modelID,(tonumber(data.lodDistance or 200)))
 					streamingDistances[modelID] = (tonumber(data.lodDistance or 200))
 
 					local LOD = data.lod
@@ -54,19 +70,30 @@ function loadMapDefinitions ( resourceName,mapDefinitions,last)
 							useLODs[data.id] = (data.lodID or data.id)
 						end
 					end
-						
+					
+					if data.flags then
+						getFlags(data)
+					end
+					
+					idObjectProperties[data.id] = {}
+					
+					idObjectProperties[data.id]['doubleSided'] = data.doubleSided
+					idObjectProperties[data.id]['breakable'] = data.breakable
+					
 					-- // Textures
 					
 					local textureString = data.txd
 
 					local TXDPath = ':'..resourceName..'/zones/'..zone..'/txd/'..textureString..'.txd'
 
-					local texture,textureCache = requestTextureArchive(TXDPath,textureString)
+					local texture,textureCache = requestTextureArchive(TXDPath,resourceName)
 
 					if texture then
-						engineImportTXD(texture,modelID)
-						table.insert(resource[resourceName],textureCache)
-						
+						if engineImportTXD(texture,modelID) then
+							--table.insert(resource[resourceName],textureCache)
+						else
+							print('Texture : '..textureString..' could not be loaded!')
+						end
 					else
 						print('Texture : '..textureString..' could not be loaded!')
 					end
@@ -77,35 +104,43 @@ function loadMapDefinitions ( resourceName,mapDefinitions,last)
 
 					local COLPath = ':'..resourceName..'/zones/'..zone..'/col/'..collisionString..'.col'
 
-					local collision,collisionCache = requestCollision(COLPath,collisionString)
+					local collision,collisionCache = requestCollision(COLPath,resourceName)
 
 					if collision then
-						engineReplaceCOL(collision,modelID)
-						table.insert(resource[resourceName],collisionCache)
+						if not engineReplaceCOL(collision,modelID) then
+							print('Collision : '..collisionString..' could not be loaded!')
+						end
 					else
 						print('Collision : '..collisionString..' could not be loaded!')
 					end
 					
 					-- // Models
 					
-					local modelString = data.dff
+					local modelString = data.dff or data.id
 					
 					local DFFPath = ':'..resourceName..'/zones/'..zone..'/dff/'..modelString..'.dff'
-					local model,modelCache = requestModel(DFFPath)
+					local model,modelCache = requestModel(DFFPath,resourceName)
 						
 					if model then
-						if (data.alphaTransparency == 'true') then
-							engineReplaceModel(model,modelID,true)
+						if (data.alphaTransparency == 'true') or (data.alphaTransparency == true) then
+							if not engineReplaceModel(model,modelID,true) then
+								print('Model : '..modelString..' could not be loaded!')
+								failed[data.id] = true
+							end
 						else
-							engineReplaceModel(model,modelID)
+							if not engineReplaceModel(model,modelID) then
+								print('Model : '..modelString..' could not be loaded!')
+								failed[data.id] = true
+							end
 						end
-						table.insert(resource[resourceName],modelCache)
 					else
 						print('Model : '..modelString..' could not be loaded!')
+						failed[data.id] = true
 					end
 					
-					if data.timeIn then
+					if tonumber(data.timeIn) and tonumber(data.timeOut) then
 						setModelStreamTime (modelID, tonumber(data.timeIn), tonumber(data.timeOut))
+						timeTableID[data.id] = true
 					end
 				end
 				
@@ -120,6 +155,7 @@ end
 function loaded(resourceName)
 	loadedFunction (resourceName)
 	initializeObjects()
+	releaseCatche(resourceName)
 end
 					
 
@@ -128,7 +164,12 @@ function initializeObjects()
 	Async:foreach(getElementsByType("object"), function(object)
 	
 		local id = getElementID(object)
-		changeObjectModel(object,id,true,true)
+		
+		if failed[id] then
+			destroyElement(object)
+		else
+			changeObjectModel(object,id,true,true)
+		end
 	end)
 end
 
@@ -154,23 +195,42 @@ function changeObjectModel (object,newModel,streamNew,inital)
 			setElementModel(object,idCache[newModel])
 			setElementID(object,newModel)
 			setElementData(object,'Zone',definitionZones[id])
+			setElementDoubleSided(object,(idObjectProperties[newModel]['doubleSided'] or false))
+			
+			setObjectBreakable(object,(idObjectProperties[newModel]['breakable'] or false))
+			
+			if timeTableID[newModel] then
+				timeTable[object] = true
+			else
+				timeTable[object] = false
+			end
+			
 			local LOD = getLowLODElement(object)
 			if LOD then
 				destroyElement(LOD) -- // Clear LOD if it exists
 			end
+			
+			local lodID = useLODs[newModel] or (getElementData(object,'lodID'))
+			
+			if idCache[lodID] then -- // Create new LOD if this model has a LOD assigned to it
 				
-			if useLODs[newModel] then -- // Create new LOD if this model has a LOD assigned to it
 				local x,y,z,xr,yr,zr = getElementPosition (object)
 				local xr,yr,zr = getElementRotation (object)
-				local nObject = createObject (idCache[newModel],x,y,z,xr,yr,zr,true)
+				local nObject = createObject (idCache[lodID],x,y,z,xr,yr,zr,true)
 				local cull,dimension,interior = isElementDoubleSided(object),getElementDimension(object),getElementInterior(object)
-				setElementData(nObject,'Zone',definitionZones[newModel])
+				setElementData(nObject,'Zone',definitionZones[lodID])
 				setElementDoubleSided(nObject,cull)
 				setElementInterior(nObject,interior)
 				setElementDimension(nObject,dimension)
-				setElementID(nObject,newModel)
+				setElementID(nObject,lodID)
 				setLowLODElement(object,nObject)
-				if lodAttach[newModel] then
+				
+				if timeTableID[lodID] then
+					timeTable[nObject] = true
+				else
+					timeTable[nObject] = false
+				end
+				if lodAttach[lodID] then
 					attachElements(nObject,object)
 				end
 			end
@@ -206,12 +266,11 @@ end
 addEventHandler("onElementDataChange", root, onElementDataChange)
 
 function unloadMapDefinitions(name) -- // Feed this the resource name in order to unload the definitions loaded.
-	if resource[name] then
+	if resourceModels[name] then
 		for ID,_ in pairs(resourceModels[name]) do
 			engineFreeModel(ID)
 		end
 	end
-	resource[name] = nil
 	resourceModels[name] = nil
 end
 addEvent( "resourceStop", true )

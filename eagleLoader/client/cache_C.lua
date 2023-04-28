@@ -22,27 +22,39 @@ function requestModelID(modelID)
 	return idCache[modelID]
 end
 
-function requestTextureArchive(path)
+function requestTextureArchive(path,resourceName)
 	if fileExists(path) then
-		globalCache[path] = globalCache[path] or engineLoadTXD(path)
-		return globalCache[path],path
+		globalCache[resourceName][path] = globalCache[resourceName][path] or engineLoadTXD(path)
+		return globalCache[resourceName][path],path
 	else
 		return false
 	end
 end
 
-function requestCollision(path)
+function requestCollision(path,resourceName)
 	if fileExists(path) then
-		globalCache[path] = globalCache[path] or engineLoadCOL(path)
-		return globalCache[path],path
+		globalCache[resourceName][path] = globalCache[resourceName][path] or engineLoadCOL(path)
+		return globalCache[resourceName][path],path
 	else
 		return false
 	end
 end
 
-function requestModel(path)
+function requestModel(path,resourceName)
 	if path then
-		globalCache[path] = globalCache[path] or engineLoadDFF(path)
-		return globalCache[path],path
+		globalCache[resourceName][path] = globalCache[resourceName][path] or engineLoadDFF(path)
+		return globalCache[resourceName][path],path
+	end
+end
+
+function releaseCatche(resourceName)
+	if globalCache[resourceName] then
+		for path,loaded in pairs(globalCache[resourceName]) do
+			globalCache[resourceName][path] = nil
+		end
+		globalCache[resourceName] = nil
+		return true
+	else
+		return false
 	end
 end
