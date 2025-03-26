@@ -32,7 +32,7 @@ The following is a list of features this resource provides
 
 ## Usage
 
-1. [Download](https://github.com/BlueEagle12/MTA-SA---Eagle-Loader/tree/2.0) 
+1. [Download](https://github.com/BlueEagle12/MTA-SA---Eagle-Loader) 
 2. Place the folder 'eagleMapProccessor' in your resources folder
 3. Start the resource
 4. Start maps that use the resource
