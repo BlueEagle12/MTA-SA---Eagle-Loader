@@ -1,6 +1,6 @@
 # Eagle Map Loader | MTA:SA
 
-Eagle map loader is a resource for MTA:SA that allows for easy loading and proccessing of custom maps
+Eagle map loader is a resource for MTA:SA that allows for easy and nearly instant loading and proccessing of custom maps
 
 ## Supported Features
 
@@ -28,12 +28,7 @@ The following is a list of features this resource provides
 - [ ] Object Effects
   - [ ] Vegitation swaying
   - [ ] Moving objects EX : LCs draw bridge
-  - [ ] Day time & Night time only objects
-  
-#### Misc
-
-- [ ] Custom water placement
-  
+  - [X] Day time & Night time only objects
 
 ## Usage
 
@@ -58,3 +53,6 @@ See these two GITHUBs for map creation :
   - Used to unload a map
 * [X] - changeObjectModel - `object,newID`
   - Used to set an objects custom model (Changing objects ID will do the same thing!)
+
+
+[Discord](https://discord.gg/q8ZTfGqRXj)
