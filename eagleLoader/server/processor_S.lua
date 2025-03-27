@@ -1,7 +1,6 @@
 -- //Properties you can edit
 removeDefaultMap = true
 
-
 -- //Rest of the script
 if removeDefaultMap then
 	for i=550,20000 do
@@ -36,4 +35,13 @@ function streamObject(id,x,y,z,xr,yr,zr)
 	local obj = createObject(1337,x,y,z,xr,yr,zr)
 	setElementID(obj,id)
 	return obj
+end
+
+function streamBuilding(id,x,y,z,xr,yr,zr)
+	local x = x or 0
+	local y = y or 0
+	local z = z or 0
+	local build = createBuilding(1337,x,y,z,xr,yr,zr)
+	setElementID(build,id)
+	return build
 end

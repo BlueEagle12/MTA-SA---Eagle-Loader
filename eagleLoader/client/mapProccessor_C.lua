@@ -23,7 +23,6 @@ function onResourceStart(resourceThatStarted)
 		end
 	end
 	
-
 	local last = definitionList[#definitionList]
 	if last then
 		local lastID = last.id

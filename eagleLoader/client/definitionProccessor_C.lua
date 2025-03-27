@@ -1,120 +1,108 @@
 
 -- Tables --
-resource		    = {}
-resourceModels 	 	= {}
+-- ===========================
+-- Resource Management
+-- ===========================
+resource           = {} -- Holds map definitions and data
+resourceModels     = {} -- Holds models assigned to each resource
 
-streamingDistances  = {}
+-- ===========================
+-- Streaming & Distances
+-- ===========================
+streamingDistances = {} -- Stores streaming distances per model
+streamEverything   = true -- Set to true to stream all elements by default
 
-validID 			= {}
-streamEverything    = true
+-- ===========================
+-- Valid IDs & Definitions
+-- ===========================
+validID            = {} -- Tracks valid IDs of loaded models
+definitionZones    = {} -- Stores zones associated with model definitions
 
-definitionZones     = {}
-lodAttach 			= {}
-lodAttach['tram']   = true
+-- ===========================
+-- LOD Attachments
+-- ===========================
+lodAttach = {           -- Anything that LODs should be attached to, currently includes Tram for LC.
+    ["Tram"] = true
+}
 
-function loadMapDefinitions ( resourceName,mapDefinitions,last)
-	resourceModels[resourceName] = {}
-	startTickCount = getTickCount ()
-	resource[resourceName] = {}
-	
 
-	for i,v in pairs(getElementsByType('object')) do -- // Loop through all of the objects and mark which IDs exist
-		local id = getElementID(v)
-		validID[id] = true
-	end
-	
-	
-	Async:setPriority("medium")
-	Async:foreach(mapDefinitions, function(data)
-			
-		if not (data.default == 'true') then
-			
-			local modelID,new = requestModelID(data.id,true)
-			
-			if modelID then
-				
-				if new then
-					resourceModels[resourceName][modelID] = true
-				end
-					
-				if streamEverything or validID[data.id] then
-					
-					local zone = data.zone
-					
-					definitionZones[modelID] = zone
-					
-					engineSetModelLODDistance (modelID,tonumber(data.lodDistance or 200))
-					streamingDistances[modelID] = (tonumber(data.lodDistance or 200))
+function loadMapDefinitions(resourceName, mapDefinitions, last)
+    resourceModels[resourceName] = {}
+    startTickCount = getTickCount()
+    resource[resourceName] = {}
 
-					local LOD = data.lod
-					local LODID = data.lodID
-						
-					if LOD then
-						if (LOD == 'true') then
-							useLODs[data.id] = (data.lodID or data.id)
-						end
-					end
-						
-					-- // Textures
-					
-					local textureString = data.txd
 
-					local TXDPath = ':'..resourceName..'/zones/'..zone..'/txd/'..textureString..'.txd'
+    for _, obj in pairs(getElementsByType('object')) do
+        validID[getElementID(obj)] = true
+    end
 
-					local texture,textureCache = requestTextureArchive(TXDPath,textureString)
+    Async:setPriority("medium")
+    Async:foreach(mapDefinitions, function(data)
+        if data.default == 'true' then
+            return
+        end
 
-					if texture then
-						engineImportTXD(texture,modelID)
-						table.insert(resource[resourceName],textureCache)
-						
-					else
-						print('Texture : '..textureString..' could not be loaded!')
-					end
-					
-					-- // Collisions
-					
-					local collisionString = data.col
+        local modelID, isNew = requestModelID(data.id, true)
+        if not modelID then
+            print(string.format("Error: Failed to request model ID for object with ID: %s", tostring(data.id)))
+            return
+        end
 
-					local COLPath = ':'..resourceName..'/zones/'..zone..'/col/'..collisionString..'.col'
+        if isNew then
+            resourceModels[resourceName][modelID] = true
+        end
 
-					local collision,collisionCache = requestCollision(COLPath,collisionString)
+        if streamEverything or validID[data.id] then
+            local zone = data.zone
+            local lodDistance = tonumber(data.lodDistance) or 200
+            local lodEnabled = (data.lod == 'true')
 
-					if collision then
-						engineReplaceCOL(collision,modelID)
-						table.insert(resource[resourceName],collisionCache)
-					else
-						print('Collision : '..collisionString..' could not be loaded!')
-					end
-					
-					-- // Models
-					
-					local modelString = data.dff
-					
-					local DFFPath = ':'..resourceName..'/zones/'..zone..'/dff/'..modelString..'.dff'
-					local model,modelCache = requestModel(DFFPath)
-						
-					if model then
-						if (data.alphaTransparency == 'true') then
-							engineReplaceModel(model,modelID,true)
-						else
-							engineReplaceModel(model,modelID)
-						end
-						table.insert(resource[resourceName],modelCache)
-					else
-						print('Model : '..modelString..' could not be loaded!')
-					end
-					
-					if data.timeIn then
-						setModelStreamTime (modelID, tonumber(data.timeIn), tonumber(data.timeOut))
-					end
-				end
-				
-				if (data.id == last) then
-					loaded(resourceName)
-				end
-			end
-		end
-	end)
+            definitionZones[modelID] = zone
+            engineSetModelLODDistance(modelID, lodDistance)
+            streamingDistances[modelID] = lodDistance
+
+            if lodEnabled then
+                useLODs[data.id] = data.lodID or data.id
+            end
+
+            loadAsset('txd', data.txd, resourceName, zone, modelID)
+            loadAsset('col', data.col, resourceName, zone, modelID)
+            loadAsset('dff', data.dff, resourceName, zone, modelID, data.alphaTransparency == 'true')
+
+            if data.timeIn then
+                setModelStreamTime(modelID, tonumber(data.timeIn), tonumber(data.timeOut))
+            end
+        end
+
+        if data.id == last then
+            loaded(resourceName)
+        end
+    end)
+end
+
+function loadAsset(assetType, assetName, resourceName, zone, modelID, alpha)
+    if not assetName then return end
+
+    local assetPath = string.format(":%s/zones/%s/%s/%s.%s", resourceName, zone, assetType, assetName, assetType)
+    local loaderFunc = assetType == 'txd' and requestTextureArchive or
+                       assetType == 'col' and requestCollision or
+                       assetType == 'dff' and requestModel
+
+    local asset, cachePath = loaderFunc(assetPath, assetName)
+    if asset then
+        if assetType == 'txd' then
+            engineImportTXD(asset, modelID)
+        elseif assetType == 'col' then
+            engineReplaceCOL(asset, modelID)
+        elseif assetType == 'dff' then
+            engineReplaceModel(asset, modelID, alpha or false)
+        end
+
+        -- Cache the loaded asset for release
+        table.insert(resource[resourceName], cachePath)
+    else
+        print(string.format('%s: %s could not be loaded!', assetType:upper(), assetName))
+    end
 end
 
 function loaded(resourceName)
@@ -122,63 +110,133 @@ function loaded(resourceName)
 	initializeObjects()
 end
 					
-
 function initializeObjects()
-	Async:setPriority("medium")
-	Async:foreach(getElementsByType("object"), function(object)
-	
-		local id = getElementID(object)
-		changeObjectModel(object,id,true,true)
-	end)
+
+    Async:setPriority("medium")
+
+    local allElements = {}
+    for _, object in ipairs(getElementsByType("object")) do
+        table.insert(allElements, object)
+    end
+    for _, building in ipairs(getElementsByType("building")) do
+        table.insert(allElements, building)
+    end
+
+    Async:foreach(allElements, function(element)
+        if not isElement(element) then
+            print("Warning: Encountered an invalid element during initialization.")
+            return
+        end
+
+        local id = getElementID(element)
+        
+        if id then
+            setElementStream(element, id, true, true)
+        else
+            print("Error: Element has no valid ID and cannot be initialized.")
+        end
+    end)
 end
 
-function loadedFunction (resourceName)
-	local endTickCount = getTickCount ()-startTickCount
-	triggerServerEvent ( "onPlayerLoad", resourceRoot, tostring(endTickCount),resourceName )
-	createTrayNotification( 'You have finished loading : '..resourceName, "info" )
-end
 
 
-function changeObjectModel (object,newModel,streamNew,inital)
-	local id = getElementID(object)
-	
-	if id or streamNew then
-		if idCache[newModel] then
-			if not inital then
-				if id then
-					print(id..'- Changed to : '..newModel)
-				else
-					print('New object streamed with ID: '..newModel)
-				end
-			end
-			setElementModel(object,idCache[newModel])
-			setElementID(object,newModel)
-			setElementData(object,'Zone',definitionZones[id])
-			local LOD = getLowLODElement(object)
-			if LOD then
-				destroyElement(LOD) -- // Clear LOD if it exists
-			end
-				
-			if useLODs[newModel] then -- // Create new LOD if this model has a LOD assigned to it
-				local x,y,z,xr,yr,zr = getElementPosition (object)
-				local xr,yr,zr = getElementRotation (object)
-				local nObject = createObject (idCache[newModel],x,y,z,xr,yr,zr,true)
-				local cull,dimension,interior = isElementDoubleSided(object),getElementDimension(object),getElementInterior(object)
-				setElementData(nObject,'Zone',definitionZones[newModel])
-				setElementDoubleSided(nObject,cull)
-				setElementInterior(nObject,interior)
-				setElementDimension(nObject,dimension)
-				setElementID(nObject,newModel)
-				setLowLODElement(object,nObject)
-				if lodAttach[newModel] then
-					attachElements(nObject,object)
-				end
-			end
-		end
-	end
+function loadedFunction(resourceName)
+    if not startTickCount or type(startTickCount) ~= "number" then
+        print("Error: startTickCount is invalid or not set.")
+        return
+    end
+
+    local endTickCount = getTickCount() - startTickCount
+
+    if isElement(resourceRoot) then
+        triggerServerEvent("onPlayerLoad", resourceRoot, tostring(endTickCount), resourceName)
+    else
+        print("Error: resourceRoot is invalid or not available.")
+    end
+
+    createTrayNotification(string.format("You have finished loading: %s", resourceName), "info")
 end
-addEvent( "changeObjectModel", true )
-addEventHandler( "changeObjectModel", resourceRoot, changeObjectModel )
+
+function setElementStream(object, newModel, streamNew, initial)
+
+    if not isElement(object) or not newModel then
+        print("Error: Invalid element or model specified.")
+        return
+    end
+
+    local id = getElementID(object)
+    
+    if id or streamNew then
+        local cachedModel = idCache[newModel]
+
+        if cachedModel then
+            if not initial then
+                if id then
+                    print(string.format("%s - Changed to: %s", id, newModel))
+                else
+                    print(string.format("New element streamed with ID: %s", newModel))
+                end
+            end
+
+            setElementModel(object, cachedModel)
+            setElementID(object, newModel)
+            setElementData(object, "Zone", definitionZones[id])
+			prepTime(object,id)
+
+            local LOD = getLowLODElement(object)
+            if LOD then
+                destroyElement(LOD)
+            end
+
+            local assignedLOD = useLODs[newModel]
+            if assignedLOD then
+                local x, y, z = getElementPosition(object)
+                local xr, yr, zr = getElementRotation(object)
+
+                local elementType = getElementType(object)
+                local nObject
+                if elementType == "building" then
+     
+                    nObject = createBuilding(cachedModel, x, y, z, xr, yr, zr, true)
+                    if nObject then
+                        print(string.format("Created new LOD as building for model: %s", newModel))
+                    end
+                else
+                    -- Create an object otherwise
+                    nObject = createObject(cachedModel, x, y, z, xr, yr, zr, true)
+                    if nObject then
+                        print(string.format("Created new LOD as object for model: %s", newModel))
+                    end
+                end
+
+                if isElement(nObject) then
+                    setElementData(nObject, "Zone", definitionZones[newModel])
+                    setElementDoubleSided(nObject, isElementDoubleSided(object))
+                    setElementInterior(nObject, getElementInterior(object))
+                    setElementDimension(nObject, getElementDimension(object))
+                    setElementID(nObject, newModel)
+					prepTime(nObject,id)
+
+                    setLowLODElement(object, nObject)
+
+                    if lodAttach[newModel] then
+                        attachElements(nObject, object)
+                    end
+                else
+                    print(string.format("Error: Failed to create LOD element for model: %s", newModel))
+                end
+            end
+        else
+            print(string.format("Error: Model ID %s not found in cache.", newModel))
+        end
+    end
+end
+
+-- Register the event
+addEvent("setElementStream", true)
+addEventHandler("setElementStream", resourceRoot, setElementStream)
+
+
 
 
 function streamObject(id,x,y,z,xr,yr,zr)
@@ -186,53 +244,91 @@ function streamObject(id,x,y,z,xr,yr,zr)
 	local y = y or 0
 	local z = z or 0
 	local obj = createObject(1337,x,y,z,xr,yr,zr)
-	changeObjectModel(obj,id,true)
+	setElementStream(obj,id,true)
 	setElementID(obj,id)
 	return obj
 end
 
+function streamBuilding(id,x,y,z,xr,yr,zr)
+	local x = x or 0
+	local y = y or 0
+	local z = z or 0
+	local build = createBuilding(1337,x,y,z,xr,yr,zr)
+	setElementStream(build,id,true)
+	setElementID(build,id)
+	return build
+end
 
 
 function onElementDataChange(dataName, oldValue)
-    if (dataName == "id") then
+
+    if dataName == "id" and isElement(source) then
         local newId = getElementID(source)
-		if idCache[newId] then
-			if (newId ~= oldValue) then
-				changeObjectModel (source,newId)
-			end
-		end
+
+        if newId and idCache[newId] and newId ~= oldValue then
+            setElementStream(source, newId)
+        end
     end
 end
+
 addEventHandler("onElementDataChange", root, onElementDataChange)
 
-function unloadMapDefinitions(name) -- // Feed this the resource name in order to unload the definitions loaded.
-	if resource[name] then
-		for ID,_ in pairs(resourceModels[name]) do
-			engineFreeModel(ID)
-		end
-	end
-	resource[name] = nil
-	resourceModels[name] = nil
+function unloadMapDefinitions(name)
+
+    if not name or not resource[name] then
+        return
+    end
+
+    if resourceModels[name] then
+        for ID, _ in pairs(resourceModels[name]) do
+            if ID and engineFreeModel(ID) then
+                print(string.format("Model ID %s successfully freed.", ID))
+            else
+                print(string.format("Warning: Model ID %s could not be freed or does not exist.", ID))
+            end
+        end
+    end
+
+    resource[name] = nil
+    resourceModels[name] = nil
+
+    print(string.format("Successfully unloaded map definitions for resource: %s", name))
 end
-addEvent( "resourceStop", true )
-addEventHandler( "resourceStop", localPlayer, unloadMapDefinitions )
+
+addEvent("resourceStop", true)
+addEventHandler("resourceStop", resourceRoot, unloadMapDefinitions)
+
 
 function onElementDestroy()
-	if idCache[getElementID(source)] then -- // Only destroying the LOD if it's a custom model
-		if getElementType(source) == "object" then
-			if getLowLODElement(source) then
-				destroyElement(getLowLODElement(source))
-			end
-		end
-	end
+
+    local elementID = getElementID(source)
+    local elementType = getElementType(source)
+
+    if elementID and idCache[elementID] then
+
+        if elementType == "object" or elementType == "building" then
+            local LOD = getLowLODElement(source)
+
+            if isElement(LOD) then
+                destroyElement(LOD)
+                print(string.format("LOD for %s with ID %s destroyed successfully.", elementType, elementID))
+            end
+        end
+    end
 end
-addEventHandler("onElementDestroy",resourceRoot,onElementDestroy)
+
+addEventHandler("onElementDestroy", resourceRoot, onElementDestroy)
+
 
 
 function getMaps()
-	local tempTable = {}
-	for i,v in pairs(resource) do
-		table.insert(tempTable,i)
-	end
-	return tempTable
+    local tempTable = {}
+
+    if resource and next(resource) then
+        for name, _ in pairs(resource) do
+            table.insert(tempTable, name)
+        end
+    end
+
+    return tempTable
 end

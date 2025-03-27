@@ -1,16 +1,20 @@
-function isStringTrue (str)
-	return (str == 'true')
+timeTable = {}
+
+-- Check if a string equals "true"
+function isStringTrue(str)
+    return str == "true"
 end
 
-
+-- Model streaming data
 streamTimes = {}
 streamTimeObj = {}
 
-function setModelStreamTime(model,sIn,sOut)
-	streamTimes[model] = {sIn,sOut}
+-- Set stream time for models
+function setModelStreamTime(model, sIn, sOut)
+    streamTimes[model] = {sIn, sOut}
 end
 
-
+-- Check if the current time is between start and end time
 function isTimeBetween(startTimeHour, startTimeMinute, endTimeHour, endTimeMinute)
     local currentHour, currentMinute = getTime()
 
@@ -18,6 +22,7 @@ function isTimeBetween(startTimeHour, startTimeMinute, endTimeHour, endTimeMinut
     local endTotalMinutes = endTimeHour * 60 + endTimeMinute
     local currentTotalMinutes = currentHour * 60 + currentMinute
 
+    -- Handle time wrapping over midnight
     if startTotalMinutes <= endTotalMinutes then
         return currentTotalMinutes >= startTotalMinutes and currentTotalMinutes <= endTotalMinutes
     else
@@ -25,42 +30,46 @@ function isTimeBetween(startTimeHour, startTimeMinute, endTimeHour, endTimeMinut
     end
 end
 
+-- Timer to manage object scaling and LOD distance
 setTimer(function()
-    local hours = getTime()
-	for obj,_ in pairs(timeTable) do
-		if streamTimes[getElementModel(obj)] then
-			local sIn,sOut = unpack(streamTimes[getElementModel(obj)])
-			
-			if sIn and sOut then
-				if isTimeBetween(sIn,0,sOut,0) then
-					if not (streamTimeObj[obj] == 1) then
-						streamTimeObj[obj] = 1
-						setObjectScale(obj,1)
-						if streamingDistances[getElementModel(obj)] then
-							engineSetModelLODDistance (getElementModel(obj),streamingDistances[getElementModel(obj)])
-						else
-							engineResetModelLODDistance(getElementModel(obj))
-						end
-					end
-				else
-					if not (streamTimeObj[obj] == 2) then
-						streamTimeObj[obj] = 2
-						setObjectScale(obj,0)
-						engineSetModelLODDistance (getElementModel(obj),0)
-					end
-				end
-			end
-		end
-	end
+    local hours, minutes = getTime()
+    for obj, _ in pairs(timeTable) do
+        local model = getElementModel(obj)
+        local timeData = streamTimes[model]
+
+        if timeData then
+            local sIn, sOut = timeData[1], timeData[2]
+            if sIn and sOut then
+                local shouldStreamIn = isTimeBetween(sIn, 0, sOut, 0)
+                local currentState = streamTimeObj[obj]
+
+                if shouldStreamIn and currentState ~= 1 then
+                    streamTimeObj[obj] = 1
+                    setObjectScale(obj, 1)
+                    local lodDistance = streamingDistances[model] or 0
+                    engineSetModelLODDistance(model, lodDistance)
+                elseif not shouldStreamIn and currentState ~= 2 then
+                    streamTimeObj[obj] = 2
+                    setObjectScale(obj, 0)
+                    engineSetModelLODDistance(model, 0)
+                end
+            end
+        end
+    end
 end, 500, 0)
 
-local flagsTableNew = {}
+function prepTime(element, id)
+    timeTable[element] = streamTimes[id] and true or nil
+end
 
+
+-- Process flags table to optimize lookups
+local flagsTableNew = {}
 local flagsTable = {
     {1, "IS_ROAD"},
     {2, "-"},
-    {4, "DRAW_LAST", 'alphaTransparency'},
-    {8, "ADDITIVE", 'alphaTransparency'},
+    {4, "DRAW_LAST", "alphaTransparency"},
+    {8, "ADDITIVE", "alphaTransparency"},
     {16, "-"},
     {32, ""},
     {64, "NO_ZBUFFER_WRITE"},
@@ -69,7 +78,7 @@ local flagsTable = {
     {512, "IS_GLASS_TYPE_1"},
     {1024, "IS_GLASS_TYPE_2"},
     {2048, "IS_GARAGE_DOOR"},
-    {4096, "IS_DAMAGABLE", 'breakable'},
+    {4096, "IS_DAMAGABLE", "breakable"},
     {8192, "IS_TREE"},
     {16384, "IS_PALM"},
     {32768, "DOES_NOT_COLLIDE_WITH_FLYER"},
@@ -78,41 +87,35 @@ local flagsTable = {
     {262144, "-"},
     {524288, "-"},
     {1048576, "IS_TAG"},
-    {2097152, "DISABLE_BACKFACE_CULLING", 'doubleSided'},
+    {2097152, "DISABLE_BACKFACE_CULLING", "doubleSided"},
     {4194304, "IS_BREAKABLE_STATUE"}
 }
 
-for _,data in pairs(flagsTable) do
-	flagsTableNew[data[1]] = data[3]
+for _, data in pairs(flagsTable) do
+    if data[3] then
+        flagsTableNew[data[1]] = data[3]
+    end
 end
 
 function countCommas(str)
-    local count = 0
-    for i=1,#str do
-        if str:sub(i,i) == "," then
-            count = count + 1
-        end
-    end
+    local _, count = str:gsub(",", "")
     return count
 end
 
 function flagList(flags)
-	if countCommas(flags) > 1 then
-		return split(flags,',')
-	else
-		return {flags}
-	end
+    if countCommas(flags) > 0 then
+        return split(flags, ",")
+    else
+        return {flags}
+    end
 end
-	
-function getFlags(attribute,flags)
-	local flags = attribute.flags
-	
-	local list = flagList(flags)
-	
-	for _,flag in pairs(list) do
-		local flag = tonumber(flag)
-		if flagsTableNew[flag] then
-			attribute[flagsTableNew[flag]] = true
-		end
-	end
+
+function getFlags(attribute, flags)
+    local list = flagList(flags)
+    for _, flag in pairs(list) do
+        local flagValue = tonumber(flag)
+        if flagsTableNew[flagValue] then
+            attribute[flagsTableNew[flagValue]] = true
+        end
+    end
 end
