@@ -249,11 +249,11 @@ function streamObject(id,x,y,z,xr,yr,zr)
 	return obj
 end
 
-function streamBuilding(id,x,y,z,xr,yr,zr)
+function streamBuilding(id,x,y,z,xr,yr,zr,interior)
 	local x = x or 0
 	local y = y or 0
 	local z = z or 0
-	local build = createBuilding(1337,x,y,z,xr,yr,zr)
+	local build = createBuilding(1337,x,y,z,xr,yr,zr,interior)
 	setElementStream(build,id,true)
 	setElementID(build,id)
 	return build
