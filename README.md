@@ -47,11 +47,11 @@ See these two GITHUBs for map creation :
 
 #### Resource Exports
 
-* [X] - loadMapDefinitions - `ResoueceName,Table with map definitions`
+* [X] - loadMapDefinitions - `loadMapDefinitions ( ResoueceName, Table with map definitions )`
   - Used to load a map
-* [X] - unloadMapDefinitions - `ResourceName`
+* [X] - unloadMapDefinitions - `unloadMapDefinitions( ResourceName )`
   - Used to unload a map
-* [X] - setElementStream - `object,ID`
+* [X] - setElementStream - `setElementStream ( element theElement, int streamID )`
   - Used to set an object or building ID. Using setElementID() will do the same thing.
 * [X] - streamObject - `streamObject ( int streamID, float x, float y, float z, [ float rx, float ry, float rz )`
   - Create an object using eagleLoader, same pararmeters as createObject
