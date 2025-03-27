@@ -22,9 +22,12 @@
     <export function="loadMapDefinitions" type="client" />
     <export function="unloadMapDefinitions" type="client" />
     <export function="streamObject" type="client" />
+	<export function="streamBuilding" type="client" />
+	<export function="setElementStream" type="client" />
     
     <!-- Server Exported Functions -->
     <export function="getMaps" type="server" />
     <export function="setElementStream" type="server" />
     <export function="streamBuilding" type="server" />
+	<export function="streamObject" type="server" />
 </meta>

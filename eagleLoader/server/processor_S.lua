@@ -9,10 +9,6 @@ if removeDefaultMap then
 	setOcclusionsEnabled(false)
 end
 
-function changeObjectModel(object,newModel)
-	triggerClientEvent ( resourceRoot,"changeObjectModel", root, object,newModel )
-end
-
 function playerLoaded ( loadTime,resource )
 	local minutes = tonumber(loadTime) / (1000 * 60)
 	
@@ -44,4 +40,8 @@ function streamBuilding(id,x,y,z,xr,yr,zr)
 	local build = createBuilding(1337,x,y,z,xr,yr,zr)
 	setElementID(build,id)
 	return build
+end
+
+function setElementStream(object,newModel)
+	triggerClientEvent ( resourceRoot,"setElementStream", root, object,newModel )
 end
