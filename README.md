@@ -51,8 +51,12 @@ See these two GITHUBs for map creation :
   - Used to load a map
 * [X] - unloadMapDefinitions - `ResourceName`
   - Used to unload a map
-* [X] - changeObjectModel - `object,newID`
-  - Used to set an objects custom model (Changing objects ID will do the same thing!)
+* [X] - setElementStream - `object,ID`
+  - Used to set an object or building ID. Using setElementID() will do the same thing.
+* [X] - streamObject - `streamObject ( int streamID, float x, float y, float z, [ float rx, float ry, float rz )`
+  - Create an object using eagleLoader, same pararmeters as createObject
+* [X] - streamBuilding - `streamBuilding ( int streamID, float x, float y, float z [, float rx, float ry, float rz, int interior = 0 ] )`
+  - Create a building using eagleLoader, same pararmeters as createBuilding
 
 
 [Discord](https://discord.gg/q8ZTfGqRXj)
