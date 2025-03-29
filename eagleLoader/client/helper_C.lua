@@ -31,6 +31,7 @@ function isTimeBetween(startTimeHour, startTimeMinute, endTimeHour, endTimeMinut
 end
 
 -- Timer to manage object scaling and LOD distance
+
 setTimer(function()
     local hours, minutes = getTime()
     for obj, _ in pairs(timeTable) do

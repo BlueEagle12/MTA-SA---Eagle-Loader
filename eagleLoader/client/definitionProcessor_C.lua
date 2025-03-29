@@ -25,6 +25,8 @@ lodAttach = {           -- Anything that LODs should be attached to, currently i
     ["Tram"] = true
 }
 
+drawDistanceMultiplier = 1.5
+
 
 function loadMapDefinitions(resourceName, mapDefinitions, last)
     resourceModels[resourceName] = {}
@@ -39,7 +41,7 @@ function loadMapDefinitions(resourceName, mapDefinitions, last)
     Async:setPriority("medium")
     Async:foreach(mapDefinitions, function(data)
         if data.default == 'true' then
-            return
+            --return
         end
 
         local modelID, isNew = requestModelID(data.id, true)
@@ -58,8 +60,8 @@ function loadMapDefinitions(resourceName, mapDefinitions, last)
             local lodEnabled = (data.lod == 'true')
 
             definitionZones[modelID] = zone
-            engineSetModelLODDistance(modelID, lodDistance)
-            streamingDistances[modelID] = lodDistance
+            engineSetModelLODDistance(modelID, lodDistance*drawDistanceMultiplier, true )
+            streamingDistances[modelID] = lodDistance*drawDistanceMultiplier
 
             if lodEnabled then
                 useLODs[data.id] = data.lodID or data.id
@@ -67,7 +69,7 @@ function loadMapDefinitions(resourceName, mapDefinitions, last)
 
             loadAsset('txd', data.txd, resourceName, zone, modelID)
             loadAsset('col', data.col, resourceName, zone, modelID)
-            loadAsset('dff', data.dff, resourceName, zone, modelID, data.alphaTransparency == 'true')
+            loadAsset('dff', data.id, resourceName, zone, modelID, data.alphaTransparency == 'true')
 
             if data.timeIn then
                 setModelStreamTime(modelID, tonumber(data.timeIn), tonumber(data.timeOut))
@@ -95,7 +97,7 @@ function loadAsset(assetType, assetName, resourceName, zone, modelID, alpha)
         elseif assetType == 'col' then
             engineReplaceCOL(asset, modelID)
         elseif assetType == 'dff' then
-            engineReplaceModel(asset, modelID, alpha or false)
+            local loaded = engineReplaceModel(asset, modelID, alpha or false)
         end
 
         -- Cache the loaded asset for release
@@ -124,16 +126,16 @@ function initializeObjects()
 
     Async:foreach(allElements, function(element)
         if not isElement(element) then
-            print("Warning: Encountered an invalid element during initialization.")
+            --print("Warning: Encountered an invalid element during initialization.")
             return
         end
 
         local id = getElementID(element)
         
         if id then
-            setElementStream(element, id, true, true)
+            --setElementStream(element, id, true, true)
         else
-            print("Error: Element has no valid ID and cannot be initialized.")
+           -- print("Error: Element has no valid ID and cannot be initialized.")
         end
     end)
 end
@@ -157,106 +159,128 @@ function loadedFunction(resourceName)
     createTrayNotification(string.format("You have finished loading: %s", resourceName), "info")
 end
 
-function setElementStream(object, newModel, streamNew, initial)
+function setElementStream(object, newModel, streamNew, initial,useLOD)
 
     if not isElement(object) or not newModel then
         print("Error: Invalid element or model specified.")
         return
     end
 
-    local id = getElementID(object)
-    
+    local id = getElementID(object) or newModel
+
     if id or streamNew then
-        local cachedModel = idCache[newModel]
+        local cachedModel = idCache[id]
 
         if cachedModel then
             if not initial then
                 if id then
-                    print(string.format("%s - Changed to: %s", id, newModel))
+                    --print(string.format("%s - Changed to: %s", id, id))
                 else
-                    print(string.format("New element streamed with ID: %s", newModel))
+                    --print(string.format("New element streamed with ID: %s", id))
                 end
             end
 
             setElementModel(object, cachedModel)
-            setElementID(object, newModel)
+            setElementID(object, id)
             setElementData(object, "Zone", definitionZones[id])
-			prepTime(object,id)
+			--prepTime(object,id)
 
             local LOD = getLowLODElement(object)
             if LOD then
                 destroyElement(LOD)
             end
+			
 
-            local assignedLOD = useLODs[newModel]
-            if assignedLOD then
-                local x, y, z = getElementPosition(object)
-                local xr, yr, zr = getElementRotation(object)
+            if useLOD then
+				local lodID = idCache[useLOD]
+				if lodID then
 
-                local elementType = getElementType(object)
-                local nObject
-                if elementType == "building" then
-     
-                    nObject = createBuilding(cachedModel, x, y, z, xr, yr, zr, true)
-                    if nObject then
-                        print(string.format("Created new LOD as building for model: %s", newModel))
-                    end
-                else
-                    -- Create an object otherwise
-                    nObject = createObject(cachedModel, x, y, z, xr, yr, zr, true)
-                    if nObject then
-                        print(string.format("Created new LOD as object for model: %s", newModel))
-                    end
-                end
+					local x, y, z = getElementPosition(object)
+					local xr, yr, zr = getElementRotation(object)
 
-                if isElement(nObject) then
-                    setElementData(nObject, "Zone", definitionZones[newModel])
-                    setElementDoubleSided(nObject, isElementDoubleSided(object))
-                    setElementInterior(nObject, getElementInterior(object))
-                    setElementDimension(nObject, getElementDimension(object))
-                    setElementID(nObject, newModel)
-					prepTime(nObject,id)
+					local elementType = getElementType(object)
+					local nObject
+					if elementType == "building" then
+						nObject = createBuilding(lodID, x, y, z, xr, yr, zr)
 
-                    setLowLODElement(object, nObject)
+						
+						if nObject then
+							--print(string.format("Created new LOD as building for model: %s", id))
+						end
+					else
+						nObject = createObject(lodID, x, y, z, xr, yr, zr, true)
+						if nObject then
+							--print(string.format("Created new LOD as object for model: %s", id))
+						end
+					end
 
-                    if lodAttach[newModel] then
-                        attachElements(nObject, object)
-                    end
-                else
-                    print(string.format("Error: Failed to create LOD element for model: %s", newModel))
-                end
+					if isElement(nObject) then
+						setElementData(nObject, "Zone", definitionZones[id])
+						setElementDoubleSided(nObject, isElementDoubleSided(object))
+						setElementInterior(nObject, getElementInterior(object))
+						setElementDimension(nObject, getElementDimension(object))
+						setElementID(nObject, id)
+						prepTime(nObject,id)
+
+						setLowLODElement(object, nObject)
+
+						if lodAttach[id] then
+							attachElements(nObject, object)
+						end
+					else
+						print(string.format("Error: Failed to create LOD element for model: %s", id))
+					end
+				else
+					print(string.format("Error: LOD model ID %s not found in cache.", id))
+				end
             end
         else
-            print(string.format("Error: Model ID %s not found in cache.", newModel))
+			local model = defaultIDs[id]
+			if model then
+				setElementModel(object, model)
+				setElementID(object, id)
+			else
+				print(string.format("Error: Model ID %s not found in cache.", id))
+			end
         end
     end
 end
 
+
+function setElementStream1()
+
+end
+
 -- Register the event
 addEvent("setElementStream", true)
-addEventHandler("setElementStream", resourceRoot, setElementStream)
+addEventHandler("setElementStream", resourceRoot, setElementStream1)
 
 
 
 
-function streamObject(id,x,y,z,xr,yr,zr)
+function streamObject(id,x,y,z,xr,yr,zr,interior,lod)
 	local x = x or 0
 	local y = y or 0
 	local z = z or 0
 	local obj = createObject(1337,x,y,z,xr,yr,zr)
-	setElementStream(obj,id,true)
+	setElementStream(obj,id,true,nil,lod)
 	setElementID(obj,id)
 	return obj
 end
 
-function streamBuilding(id,x,y,z,xr,yr,zr,interior)
-	local x = x or 0
-	local y = y or 0
-	local z = z or 0
-	local build = createBuilding(1337,x,y,z,xr,yr,zr,interior)
-	setElementStream(build,id,true)
-	setElementID(build,id)
-	return build
+function streamBuilding(id,x,y,z,xr,yr,zr,interior,lod)
+	local x = tonumber(x) or 0
+	local y = tonumber(y) or 0
+	local z = tonumber(z) or 0
+	
+	local cachedModel = idCache[id]
+	if (x > -3000) and (x < 3000) and (y > -3000) and (y < 3000) and cachedModel then
+		
+		local build = createBuilding(1337,x,y,z,xr,yr,zr)
+		setElementStream(build,id,true,nil,lod)
+		setElementID(build,id)
+		return build
+	end
 end
 
 
@@ -282,9 +306,9 @@ function unloadMapDefinitions(name)
     if resourceModels[name] then
         for ID, _ in pairs(resourceModels[name]) do
             if ID and engineFreeModel(ID) then
-                print(string.format("Model ID %s successfully freed.", ID))
+                --print(string.format("Model ID %s successfully freed.", ID))
             else
-                print(string.format("Warning: Model ID %s could not be freed or does not exist.", ID))
+                --print(string.format("Warning: Model ID %s could not be freed or does not exist.", ID))
             end
         end
     end
@@ -292,7 +316,7 @@ function unloadMapDefinitions(name)
     resource[name] = nil
     resourceModels[name] = nil
 
-    print(string.format("Successfully unloaded map definitions for resource: %s", name))
+   -- print(string.format("Successfully unloaded map definitions for resource: %s", name))
 end
 
 addEvent("resourceStop", true)
@@ -311,7 +335,7 @@ function onElementDestroy()
 
             if isElement(LOD) then
                 destroyElement(LOD)
-                print(string.format("LOD for %s with ID %s destroyed successfully.", elementType, elementID))
+               -- print(string.format("LOD for %s with ID %s destroyed successfully.", elementType, elementID))
             end
         end
     end

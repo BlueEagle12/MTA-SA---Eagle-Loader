@@ -24,7 +24,7 @@ function onResourceStop(resource) -- // Trigger the client event on resource sto
 end
 addEventHandler( "onResourceStop", root, onResourceStop)
 
-function streamObject(id,x,y,z,xr,yr,zr)
+function streamObject(id,x,y,z,xr,yr,zr,interior,lod)
 	local x = x or 0
 	local y = y or 0
 	local z = z or 0
@@ -33,7 +33,7 @@ function streamObject(id,x,y,z,xr,yr,zr)
 	return obj
 end
 
-function streamBuilding(id,x,y,z,xr,yr,zr,interior)
+function streamBuilding(id,x,y,z,xr,yr,zr,interior,lod)
 	local x = x or 0
 	local y = y or 0
 	local z = z or 0

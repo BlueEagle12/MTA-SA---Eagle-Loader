@@ -1,5 +1,6 @@
 -- // Load the definition and placement files outputted from Blender.
 saIDList = {}
+defaultIDs = {}
 currentSAIndex = 0
 
 function getLines(file)
@@ -21,6 +22,8 @@ for _, v in ipairs(idList) do
     local strings = split(v, ",")
     if strings[1] then
         table.insert(saIDList, strings[1])
+		local name = strings[2]
+		defaultIDs[name:gsub("%s+", "")] = tonumber(strings[1])
     end
 end
 

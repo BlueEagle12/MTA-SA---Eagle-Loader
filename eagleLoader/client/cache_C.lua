@@ -45,7 +45,7 @@ function requestCollision(path, resourceName)
 end
 
 function requestModel(path, resourceName)
-    return path and requestAsset(path, resourceName, engineLoadDFF) or false
+    return requestAsset(path, resourceName, engineLoadDFF)
 end
 
 function releaseCache(resourceName)
