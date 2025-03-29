@@ -25,7 +25,7 @@ lodAttach = {           -- Anything that LODs should be attached to, currently i
     ["Tram"] = true
 }
 
-drawDistanceMultiplier = 1.5
+drawDistanceMultiplier = 1.3
 
 
 function loadMapDefinitions(resourceName, mapDefinitions, last)
@@ -60,8 +60,11 @@ function loadMapDefinitions(resourceName, mapDefinitions, last)
             local lodEnabled = (data.lod == 'true')
 
             definitionZones[modelID] = zone
-            engineSetModelLODDistance(modelID, lodDistance*drawDistanceMultiplier, true )
-            streamingDistances[modelID] = lodDistance*drawDistanceMultiplier
+			
+
+			engineSetModelLODDistance(modelID, lodDistance*drawDistanceMultiplier, true )
+			streamingDistances[modelID] = lodDistance*drawDistanceMultiplier
+
 
             if lodEnabled then
                 useLODs[data.id] = data.lodID or data.id
@@ -99,7 +102,7 @@ function loadAsset(assetType, assetName, resourceName, zone, modelID, alpha)
         elseif assetType == 'dff' then
             local loaded = engineReplaceModel(asset, modelID, alpha or false)
         end
-
+	
         -- Cache the loaded asset for release
         table.insert(resource[resourceName], cachePath)
     else
@@ -111,7 +114,7 @@ function loaded(resourceName)
 	loadedFunction (resourceName)
 	initializeObjects()
 end
-					
+				
 function initializeObjects()
 
     Async:setPriority("medium")
@@ -126,14 +129,13 @@ function initializeObjects()
 
     Async:foreach(allElements, function(element)
         if not isElement(element) then
-            --print("Warning: Encountered an invalid element during initialization.")
             return
         end
 
         local id = getElementID(element)
         
         if id then
-            --setElementStream(element, id, true, true)
+            setElementStream(element, id, true, true, useLODs[id])
         else
            -- print("Error: Element has no valid ID and cannot be initialized.")
         end
@@ -183,7 +185,7 @@ function setElementStream(object, newModel, streamNew, initial,useLOD)
             setElementModel(object, cachedModel)
             setElementID(object, id)
             setElementData(object, "Zone", definitionZones[id])
-			--prepTime(object,id)
+			prepTime(object,id)
 
             local LOD = getLowLODElement(object)
             if LOD then
@@ -192,7 +194,7 @@ function setElementStream(object, newModel, streamNew, initial,useLOD)
 			
 
             if useLOD then
-				local lodID = idCache[useLOD]
+				local lodID = tonumber(idCache[useLOD])
 				if lodID then
 
 					local x, y, z = getElementPosition(object)
@@ -219,7 +221,7 @@ function setElementStream(object, newModel, streamNew, initial,useLOD)
 						setElementDoubleSided(nObject, isElementDoubleSided(object))
 						setElementInterior(nObject, getElementInterior(object))
 						setElementDimension(nObject, getElementDimension(object))
-						setElementID(nObject, id)
+						setElementID(nObject, useLOD)
 						prepTime(nObject,id)
 
 						setLowLODElement(object, nObject)
@@ -231,7 +233,7 @@ function setElementStream(object, newModel, streamNew, initial,useLOD)
 						print(string.format("Error: Failed to create LOD element for model: %s", id))
 					end
 				else
-					print(string.format("Error: LOD model ID %s not found in cache.", id))
+					print(string.format("Error: LOD model ID %s not found in cache (Stream).", id))
 				end
             end
         else
@@ -240,46 +242,67 @@ function setElementStream(object, newModel, streamNew, initial,useLOD)
 				setElementModel(object, model)
 				setElementID(object, id)
 			else
-				print(string.format("Error: Model ID %s not found in cache.", id))
+				print(string.format("Error: Model ID %s not found in cache (Default).", id))
 			end
         end
     end
 end
 
-
-function setElementStream1()
-
-end
-
 -- Register the event
 addEvent("setElementStream", true)
-addEventHandler("setElementStream", resourceRoot, setElementStream1)
+addEventHandler("setElementStream", resourceRoot, setElementStream)
 
 
-
-
-function streamObject(id,x,y,z,xr,yr,zr,interior,lod)
+function streamObject(id,x,y,z,xr,yr,zr,interior,lod,int)
 	local x = x or 0
 	local y = y or 0
 	local z = z or 0
 	local obj = createObject(1337,x,y,z,xr,yr,zr)
-	setElementStream(obj,id,true,nil,lod)
-	setElementID(obj,id)
-	return obj
+	
+	local cachedModel = true--idCache[id]
+	
+	if cachedModel then
+		if lod then
+			useLODs[id] = lod
+		end
+		
+		if not int then
+			setElementStream(obj,id,true,nil,lod)
+		end
+			
+		setElementID(obj,id)
+		
+		return obj
+	else
+		print(string.format("Error: Model ID %s not found in cache.", id))
+	end
 end
 
-function streamBuilding(id,x,y,z,xr,yr,zr,interior,lod)
+function streamBuilding(id,x,y,z,xr,yr,zr,interior,lod,int)
 	local x = tonumber(x) or 0
 	local y = tonumber(y) or 0
 	local z = tonumber(z) or 0
 	
-	local cachedModel = idCache[id]
-	if (x > -3000) and (x < 3000) and (y > -3000) and (y < 3000) and cachedModel then
-		
-		local build = createBuilding(1337,x,y,z,xr,yr,zr)
-		setElementStream(build,id,true,nil,lod)
-		setElementID(build,id)
-		return build
+	local cachedModel = true --idCache[id]
+	
+	if lod then
+		useLODs[id] = lod
+	end
+	
+	if cachedModel then
+		if (x > -3000) and (x < 3000) and (y > -3000) and (y < 3000) then
+			
+			local build = createBuilding(1337,x,y,z,xr,yr,zr)
+			
+			if not int then
+				setElementStream(build,id,true,nil,lod)
+			end
+			
+			setElementID(build,id)
+			return build
+		end
+	else
+		print(string.format("Error: Model ID %s not found in cache.", id))
 	end
 end
 
@@ -295,7 +318,7 @@ function onElementDataChange(dataName, oldValue)
     end
 end
 
-addEventHandler("onElementDataChange", root, onElementDataChange)
+--addEventHandler("onElementDataChange", root, onElementDataChange)
 
 function unloadMapDefinitions(name)
 
@@ -316,7 +339,7 @@ function unloadMapDefinitions(name)
     resource[name] = nil
     resourceModels[name] = nil
 
-   -- print(string.format("Successfully unloaded map definitions for resource: %s", name))
+    print(string.format("Successfully unloaded map definitions for resource: %s", name))
 end
 
 addEvent("resourceStop", true)
@@ -335,7 +358,7 @@ function onElementDestroy()
 
             if isElement(LOD) then
                 destroyElement(LOD)
-               -- print(string.format("LOD for %s with ID %s destroyed successfully.", elementType, elementID))
+                print(string.format("LOD for %s with ID %s destroyed successfully.", elementType, elementID))
             end
         end
     end

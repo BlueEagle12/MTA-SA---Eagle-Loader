@@ -46,13 +46,13 @@ setTimer(function()
 
                 if shouldStreamIn and currentState ~= 1 then
                     streamTimeObj[obj] = 1
-                    setObjectScale(obj, 1)
+                    --setObjectScale(obj, 1)
                     local lodDistance = streamingDistances[model] or 0
-                    engineSetModelLODDistance(model, lodDistance)
+                    --engineSetModelLODDistance(model, lodDistance)
                 elseif not shouldStreamIn and currentState ~= 2 then
                     streamTimeObj[obj] = 2
-                    setObjectScale(obj, 0)
-                    engineSetModelLODDistance(model, 0)
+                    --setObjectScale(obj, 0)
+                    --engineSetModelLODDistance(model, 0)
                 end
             end
         end

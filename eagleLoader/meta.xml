@@ -7,6 +7,11 @@
     <script type="server" src="async.lua" />
     <script type="server" src="server/processor_S.lua" />
     
+	
+    <!-- ID Files -->
+    <script type="client" src="client/validID/idListPrep.lua" />
+    <file type="client" src="client/validID/sa_id_list.ID" />
+	
     <!-- Client Scripts -->
     <script type="client" src="async.lua" />
     <script type="client" src="client/helper_C.lua" />
@@ -14,10 +19,7 @@
     <script type="client" src="client/elementProccessor_C.lua" />
     <script type="client" src="client/definitionProcessor_C.lua" />
     <script type="client" src="client/mapProcessor_C.lua" />
-    
-    <!-- ID Files -->
-    <script type="client" src="client/validID/idListPrep.lua" />
-    <file type="client" src="client/validID/sa_id_list.ID" />
+  
     
     <!-- Client Exported Functions -->
     <export function="loadMapDefinitions" type="client" />

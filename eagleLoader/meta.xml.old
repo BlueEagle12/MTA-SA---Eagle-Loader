@@ -1,0 +1,34 @@
+<meta>
+
+    <info type="script" name="eagleLoader" author="Blue Eagle" description="Eagle Map Loader" version="3.0" />
+    <min_mta_version client="1.5.8-9.20704" />
+    
+    <!-- Server Scripts -->
+    <script type="server" src="async.lua" />
+    <script type="server" src="server/processor_S.lua" />
+    
+    <!-- Client Scripts -->
+    <script type="client" src="async.lua" />
+    <script type="client" src="client/helper_C.lua" />
+    <script type="client" src="client/cache_C.lua" />
+	<script type="client" src="client/elementProccessor_C.lua" />
+    <script type="client" src="client/definitionProcessor_C.lua" />
+    <script type="client" src="client/mapProcessor_C.lua" />
+    
+    <!-- ID Files -->
+    <script type="client" src="client/validID/idListPrep.lua" />
+    <file type="client" src="client/validID/sa_id_list.ID" />
+    
+    <!-- Client Exported Functions -->
+    <export function="loadMapDefinitions" type="client" />
+    <export function="unloadMapDefinitions" type="client" />
+    <export function="streamObject" type="client" />
+	<export function="streamBuilding" type="client" />
+	<export function="setElementStream" type="client" />
+    
+    <!-- Server Exported Functions -->
+    <export function="getMaps" type="server" />
+    <export function="setElementStream" type="server" />
+    <export function="streamBuilding" type="server" />
+	<export function="streamObject" type="server" />
+</meta>

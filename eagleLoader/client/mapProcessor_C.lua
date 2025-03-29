@@ -16,6 +16,18 @@ function onResourceStart(resourceThatStarted)
 	local elementList = {}
 	
 	if exists then
+	
+		-- [[ Load maps first ]] -- 
+		local maps = getLines(fileOpen(path))
+		for _,map in pairs(maps) do
+			local list = loadMap(resourceName,map)
+			for i,v in pairs(list) do
+				table.insert(elementList,v)
+			end
+		end
+		
+		-- [[ Load definitions secound ]] -- 
+		
 		local zones = getLines(fileOpen(path))
 		for _,zone in pairs(zones) do
 			local list = loadZone(resourceName,zone)
@@ -23,15 +35,6 @@ function onResourceStart(resourceThatStarted)
 				for i,v in pairs(list) do
 					table.insert(definitionList,v)
 				end
-			end
-		end
-		
-
-		local maps = getLines(fileOpen(path))
-		for _,map in pairs(maps) do
-			local list = loadMap(resourceName,map)
-			for i,v in pairs(list) do
-				table.insert(elementList,v)
 			end
 		end
 	end
