@@ -21,7 +21,7 @@ function onResourceStart(resourceThatStarted)
 		local maps = getLines(fileOpen(path))
 		for _,map in pairs(maps) do
 			local list = loadMap(resourceName,map)
-			for i,v in pairs(list) do
+			for i,v in ipairs(list) do
 				table.insert(elementList,v)
 			end
 		end
@@ -39,6 +39,12 @@ function onResourceStart(resourceThatStarted)
 		end
 	end
 	
+	local last = elementList[#elementList]
+	if last then
+		local lastID = last.id
+		
+		streamMapElements(resourceName,elementList,lastID)
+	end
 
 	local last = definitionList[#definitionList]
 	if last then
@@ -46,12 +52,6 @@ function onResourceStart(resourceThatStarted)
 		loadMapDefinitions(resourceName,definitionList,lastID)
 	end
 	
-	local last = elementList[#elementList]
-	if last then
-		local lastID = last.id
-		
-		setTimer(streamMapElements, 8000, 1,resourceName,elementList,lastID)
-	end
 end
 
 
@@ -74,6 +74,7 @@ function loadZone(resourceName,zone)
 		
 		for _,definiton in pairs (sDefintions) do
 			local attributes = xmlNodeGetAttributes(definiton)
+			getFlags(attributes)
 			table.insert(newTable,attributes)
 		end
 		
@@ -94,13 +95,17 @@ function loadMap(resourceName,zone)
 	local sContents = xmlNodeGetChildren(mapContents)
 	local newTable = {}
 	
-	for _,definiton in pairs (sContents) do
-		local attributes = xmlNodeGetAttributes(definiton)
-		local elementType = xmlNodeGetName(definiton)
-		attributes.type = elementType
-		table.insert(newTable,attributes)
+	if sContents then
+		for _,definiton in ipairs (sContents) do
+			local attributes = xmlNodeGetAttributes(definiton)
+			local elementType = xmlNodeGetName(definiton)
+			attributes.type = elementType
+			table.insert(newTable,attributes)
+		end
+		
+		xmlUnloadFile(mapContents)
+	else
+		print(path..' MISSING')
 	end
-	
-	xmlUnloadFile(mapContents)
 	return newTable
 end

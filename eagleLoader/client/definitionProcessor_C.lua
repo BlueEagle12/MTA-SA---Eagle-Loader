@@ -25,7 +25,13 @@ lodAttach = {           -- Anything that LODs should be attached to, currently i
     ["Tram"] = true
 }
 
-drawDistanceMultiplier = 1.3
+-- ===========================
+-- Item IDs
+-- ===========================
+itemIDList = {}    -- Used for tracking a list of "Item IDs" used current for LOD parenting
+lodChildren = {}
+backFaceCull = {}
+drawDistanceMultiplier = 2
 
 
 function loadMapDefinitions(resourceName, mapDefinitions, last)
@@ -62,20 +68,38 @@ function loadMapDefinitions(resourceName, mapDefinitions, last)
             definitionZones[modelID] = zone
 			
 
-			engineSetModelLODDistance(modelID, lodDistance*drawDistanceMultiplier, true )
-			streamingDistances[modelID] = lodDistance*drawDistanceMultiplier
+            if (lodDistance < 10) then
+                engineSetModelLODDistance(modelID, 700*drawDistanceMultiplier, true )
+                streamingDistances[modelID] = 700*drawDistanceMultiplier
+            else
+                engineSetModelLODDistance(modelID, lodDistance*drawDistanceMultiplier, true )
+                streamingDistances[modelID] = lodDistance*drawDistanceMultiplier
+            end
 
 
             if lodEnabled then
                 useLODs[data.id] = data.lodID or data.id
             end
 
+            for i,v in pairs(objectFlags) do
+                if data[v.name] then
+                    engineSetModelFlag(modelID,v.name,true)
+                else
+                    engineSetModelFlag(modelID,v.name,false)
+                end
+            end
+
             loadAsset('txd', data.txd, resourceName, zone, modelID)
             loadAsset('col', data.col, resourceName, zone, modelID)
-            loadAsset('dff', data.id, resourceName, zone, modelID, data.alphaTransparency == 'true')
+            loadAsset('dff', data.id, resourceName, zone, modelID, data['draw_last'] or data['additive'])
+
+
+
+            backFaceCull[data.id] = data['disable_backface_culling']
 
             if data.timeIn then
-                setModelStreamTime(modelID, tonumber(data.timeIn), tonumber(data.timeOut))
+                setModelStreamTime(modelID,data.id, tonumber(data.timeIn), tonumber(data.timeOut))
+                --engineSetModelVisibleTime (modelID, tonumber(data.timeIn), tonumber(data.timeOut))
             end
         end
 
@@ -85,39 +109,58 @@ function loadMapDefinitions(resourceName, mapDefinitions, last)
     end)
 end
 
+function findFile(assetName,assetType,resourceName,zone)
+    local assetPath = string.format(":%s/zones/%s/%s/%s.%s", resourceName, zone, assetType, assetName, assetType)
+    local assetPathTextures = string.format(':%s/textures/%s.txd',resourceName,assetName)
+    if fileExists(assetPath) then
+        return assetPath
+    else
+        if fileExists(assetPathTextures) then
+            return assetPathTextures
+        end
+    end
+end
+
 function loadAsset(assetType, assetName, resourceName, zone, modelID, alpha)
     if not assetName then return end
 
-    local assetPath = string.format(":%s/zones/%s/%s/%s.%s", resourceName, zone, assetType, assetName, assetType)
-    local loaderFunc = assetType == 'txd' and requestTextureArchive or
-                       assetType == 'col' and requestCollision or
-                       assetType == 'dff' and requestModel
 
-    local asset, cachePath = loaderFunc(assetPath, assetName)
-    if asset then
-        if assetType == 'txd' then
-            engineImportTXD(asset, modelID)
-        elseif assetType == 'col' then
-            engineReplaceCOL(asset, modelID)
-        elseif assetType == 'dff' then
-            local loaded = engineReplaceModel(asset, modelID, alpha or false)
+    local isTXD = (assetType == "txd")
+    local assetPath = findFile(assetName,assetType,resourceName,zone)
+
+    if assetPath then
+        local loaderFunc = assetType == 'txd' and requestTextureArchive or
+                        assetType == 'col' and requestCollision or
+                        assetType == 'dff' and requestModel
+
+        local asset, cachePath = loaderFunc(assetPath, assetName)
+        if asset then
+            if assetType == 'txd' then
+                engineImportTXD(asset, modelID)
+            elseif assetType == 'col' then
+                engineReplaceCOL(asset, modelID)
+            elseif assetType == 'dff' then
+                local loaded = engineReplaceModel(asset, modelID, alpha or false)
+            end
+        
+            -- Cache the loaded asset for release
+            table.insert(resource[resourceName], cachePath)
+        else
+            print(string.format('%s: %s could not be loaded!', assetType:upper(), assetName))
         end
-	
-        -- Cache the loaded asset for release
-        table.insert(resource[resourceName], cachePath)
     else
-        print(string.format('%s: %s could not be loaded!', assetType:upper(), assetName))
+    local assetPath = string.format(":%s/zones/%s/%s/%s.%s", resourceName, zone, assetType, assetName, assetType)
+        print(string.format('%s: %s could not be found!', assetType:upper(), assetName.."."..assetType))
     end
 end
 
 function loaded(resourceName)
 	loadedFunction (resourceName)
 	initializeObjects()
+    initializeObjects()
 end
 				
 function initializeObjects()
-
-    Async:setPriority("medium")
 
     local allElements = {}
     for _, object in ipairs(getElementsByType("object")) do
@@ -127,7 +170,7 @@ function initializeObjects()
         table.insert(allElements, building)
     end
 
-    Async:foreach(allElements, function(element)
+    for i,element in pairs (allElements) do
         if not isElement(element) then
             return
         end
@@ -139,7 +182,7 @@ function initializeObjects()
         else
            -- print("Error: Element has no valid ID and cannot be initialized.")
         end
-    end)
+    end
 end
 
 
@@ -161,7 +204,7 @@ function loadedFunction(resourceName)
     createTrayNotification(string.format("You have finished loading: %s", resourceName), "info")
 end
 
-function setElementStream(object, newModel, streamNew, initial,useLOD)
+function setElementStream(object, newModel, streamNew, initial,lodParent, lodChild)
 
     if not isElement(object) or not newModel then
         print("Error: Invalid element or model specified.")
@@ -170,31 +213,61 @@ function setElementStream(object, newModel, streamNew, initial,useLOD)
 
     local id = getElementID(object) or newModel
 
-    if id or streamNew then
+    if id then
         local cachedModel = idCache[id]
 
-        if cachedModel then
-            if not initial then
-                if id then
-                    --print(string.format("%s - Changed to: %s", id, id))
-                else
-                    --print(string.format("New element streamed with ID: %s", id))
-                end
-            end
+        setElementDoubleSided(object,(backFaceCull[id] or false))
 
+        if cachedModel then
+
+            
+            local lodChild = lodChild or lodChildren[id]
             setElementModel(object, cachedModel)
             setElementID(object, id)
-            setElementData(object, "Zone", definitionZones[id])
+            setElementData(object, "Zone", definitionZones[id] or "")
 			prepTime(object,id)
+            
 
-            local LOD = getLowLODElement(object)
-            if LOD then
-                destroyElement(LOD)
+            itemIDList[id] = itemIDList[id] or {}
+
+            table.insert(itemIDList[id],object)
+
+            
+            if lodChild then
+                lodChildren[id] = lodChild
+
+                local items = splitStringByComma(lodChild)
+
+                for i,v in pairs(items) do
+
+                local childList = itemIDList[v]
+
+
+                    if childList then
+                        for _,children in pairs(childList) do
+                            setLowLODElement(children, object)
+                            if lodAttach[id] then
+                                attachElements(object, children)
+                            end
+                        end
+                    end
+                end
             end
-			
+            
 
-            if useLOD then
-				local lodID = tonumber(idCache[useLOD])
+            -- [[ LEGACY LOD HANDLER ]] --
+
+
+
+            --[[
+            if lodParent then
+
+                local LOD = getLowLODElement(object)
+                if LOD then
+                    destroyElement(LOD)
+                end
+
+				local lodID = tonumber(idCache[lodParent])
 				if lodID then
 
 					local x, y, z = getElementPosition(object)
@@ -221,7 +294,7 @@ function setElementStream(object, newModel, streamNew, initial,useLOD)
 						setElementDoubleSided(nObject, isElementDoubleSided(object))
 						setElementInterior(nObject, getElementInterior(object))
 						setElementDimension(nObject, getElementDimension(object))
-						setElementID(nObject, useLOD)
+						setElementID(nObject, lodParent)
 						prepTime(nObject,id)
 
 						setLowLODElement(object, nObject)
@@ -235,7 +308,10 @@ function setElementStream(object, newModel, streamNew, initial,useLOD)
 				else
 					print(string.format("Error: LOD model ID %s not found in cache (Stream).", id))
 				end
+                
             end
+            ]]--
+
         else
 			local model = defaultIDs[id]
 			if model then
@@ -253,21 +329,29 @@ addEvent("setElementStream", true)
 addEventHandler("setElementStream", resourceRoot, setElementStream)
 
 
-function streamObject(id,x,y,z,xr,yr,zr,interior,lod,int)
+function streamObject(id,x,y,z,xr,yr,zr,interior,lodParent,lodChild,int)
 	local x = x or 0
 	local y = y or 0
 	local z = z or 0
+
+	local xr = tonumber(xr) or 0
+	local yr = tonumber(yr) or 0
+	local zr = tonumber(zr) or 0
+
 	local obj = createObject(1337,x,y,z,xr,yr,zr)
 	
 	local cachedModel = true--idCache[id]
 	
+    backFaceCull[id] = true
 	if cachedModel then
-		if lod then
-			useLODs[id] = lod
+
+        -- Legacy LOD Handler
+		if lodParent then
+			useLODs[id] = lodParent
 		end
 		
-		if not int then
-			setElementStream(obj,id,true,nil,lod)
+		if (not int) or lodChild then
+			setElementStream(obj,id,true,nil,lodParent,lodChild)
 		end
 			
 		setElementID(obj,id)
@@ -278,24 +362,33 @@ function streamObject(id,x,y,z,xr,yr,zr,interior,lod,int)
 	end
 end
 
-function streamBuilding(id,x,y,z,xr,yr,zr,interior,lod,int)
+function streamBuilding(id,x,y,z,xr,yr,zr,interior,lodParent,lodChild,int)
 	local x = tonumber(x) or 0
 	local y = tonumber(y) or 0
 	local z = tonumber(z) or 0
 	
+	local xr = tonumber(xr) or 0
+	local yr = tonumber(yr) or 0
+	local zr = tonumber(zr) or 0
+
 	local cachedModel = true --idCache[id]
 	
-	if lod then
-		useLODs[id] = lod
+    -- Legacy LOD Handler
+	if lodParent then
+		useLODs[id] = lodParent
 	end
 	
+    if lodChild then
+        lodChildren[id] = lodChild
+    end
+
 	if cachedModel then
 		if (x > -3000) and (x < 3000) and (y > -3000) and (y < 3000) then
 			
 			local build = createBuilding(1337,x,y,z,xr,yr,zr)
 			
-			if not int then
-				setElementStream(build,id,true,nil,lod)
+			if (not int) or lodChild then
+				setElementStream(build,id,true,nil,lodParent,lodChild)
 			end
 			
 			setElementID(build,id)

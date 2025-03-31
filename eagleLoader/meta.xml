@@ -11,6 +11,7 @@
     <!-- ID Files -->
     <script type="client" src="client/validID/idListPrep.lua" />
     <file type="client" src="client/validID/sa_id_list.ID" />
+    <file type="client" src="client/validID/sa_full_id_list.ID" />
 	
     <!-- Client Scripts -->
     <script type="client" src="async.lua" />

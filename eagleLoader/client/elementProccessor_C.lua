@@ -3,12 +3,12 @@ function streamMapElements(resourceName, elementList, last)
 	
     for _, element in ipairs(elementList) do
 		if element.type == "building" then
-			local nElement = streamBuilding(element.id,element.posX,element.posY,element.posZ,element.rotX,element.rotY,element.rotZ,element.interior,element.lodID,true)
+			local nElement = streamBuilding(element.id,element.posX,element.posY,element.posZ,element.rotX,element.rotY,element.rotZ,element.interior,element.lodID,element.lodParent,true)
 			if nElement then
 				table.insert(objects,nElement)
 			end
 		else
-			local nElement = streamObject(element.id,element.posX,element.posY,element.posZ,element.rotX,element.rotY,element.rotZ,element.interior,element.lodID,true)
+			local nElement = streamObject(element.id,element.posX,element.posY,element.posZ,element.rotX,element.rotY,element.rotZ,element.interior,element.lodID,element.lodParent,true)
 			if nElement then
 				table.insert(objects,nElement)
 			end
