@@ -11,6 +11,7 @@ resourceModels     = {} -- Holds models assigned to each resource
 -- ===========================
 streamingDistances = {} -- Stores streaming distances per model
 streamEverything   = true -- Set to true to stream all elements by default
+removeDefaultMap = true   -- Disable if you'd like to keep the SA map
 
 -- ===========================
 -- Valid IDs & Definitions
@@ -32,6 +33,8 @@ itemIDList = {}    -- Used for tracking a list of "Item IDs" used current for LO
 lodChildren = {}
 backFaceCull = {}
 drawDistanceMultiplier = 2
+
+
 
 
 function loadMapDefinitions(resourceName, mapDefinitions, last)
@@ -107,6 +110,13 @@ function loadMapDefinitions(resourceName, mapDefinitions, last)
             loaded(resourceName)
         end
     end)
+
+    if removeDefaultMap then
+        for i=550,20000 do
+            removeWorldModel(i,10000,0,0,0)
+        end
+        setOcclusionsEnabled(false)
+    end
 end
 
 function findFile(assetName,assetType,resourceName,zone)

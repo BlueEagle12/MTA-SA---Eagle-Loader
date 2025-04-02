@@ -1,4 +1,4 @@
-
+resourceLoaded = {}
 
 function getLines(file)
 	local fData = fileRead(file, fileGetSize(file))
@@ -11,47 +11,48 @@ end
 function onResourceStart(resourceThatStarted)
 	local resourceName = getResourceName(resourceThatStarted)
 	local path = ((":%s/%s"):format(resourceName,'eagleZones.txt'))
-	local exists = fileExists(path) --// We want to check if the resource has an eagleZones file, this is so we don't have to go through server side which may cause issues.
+	local exists = fileExists(path) --// Confirm eagleZones exists, if so latch onto this resource.
 	local definitionList = {}
 	local elementList = {}
 	
 	if exists then
-	
-		-- [[ Load maps first ]] -- 
-		local maps = getLines(fileOpen(path))
-		for _,map in pairs(maps) do
-			local list = loadMap(resourceName,map)
-			for i,v in ipairs(list) do
-				table.insert(elementList,v)
+		if not resourceLoaded[resourceName] then -- Confirm resource is not already loaded
+		
+			-- [[ Load maps first ]] -- 
+			local maps = getLines(fileOpen(path))
+			for _,map in pairs(maps) do
+				local list = loadMap(resourceName,map)
+				for i,v in ipairs(list) do
+					table.insert(elementList,v)
+				end
 			end
-		end
-		
-		-- [[ Load definitions secound ]] -- 
-		
-		local zones = getLines(fileOpen(path))
-		for _,zone in pairs(zones) do
-			local list = loadZone(resourceName,zone)
-			if list then
-				for i,v in pairs(list) do
-					table.insert(definitionList,v)
+			
+			-- [[ Load definitions secound ]] -- 
+			
+			local zones = getLines(fileOpen(path))
+			for _,zone in pairs(zones) do
+				local list = loadZone(resourceName,zone)
+				if list then
+					for i,v in pairs(list) do
+						table.insert(definitionList,v)
+					end
 				end
 			end
 		end
-	end
-	
-	local last = elementList[#elementList]
-	if last then
-		local lastID = last.id
 		
-		streamMapElements(resourceName,elementList,lastID)
-	end
+		local last = elementList[#elementList]
+		if last then
+			local lastID = last.id
+			
+			streamMapElements(resourceName,elementList,lastID)
+		end
 
-	local last = definitionList[#definitionList]
-	if last then
-		local lastID = last.id
-		loadMapDefinitions(resourceName,definitionList,lastID)
+		local last = definitionList[#definitionList]
+		if last then
+			local lastID = last.id
+			loadMapDefinitions(resourceName,definitionList,lastID)
+		end
 	end
-	
 end
 
 
