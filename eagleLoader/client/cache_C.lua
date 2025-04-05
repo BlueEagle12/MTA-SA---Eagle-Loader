@@ -1,60 +1,60 @@
-
 globalCache = {}
 idCache = {}
 useLODs = {}
 
-allowcateDefaultIDs = true --// If we're out of custom IDs can we dig into SA?
+allocateDefaultIDs = true --// Use SA Default IDs if we're out of custom allowcated IDs.
 
+-- Request a model ID
 function requestModelID(modelID)
+    local cachedID = idCache[modelID]
+    
+    if not cachedID then
+        cachedID = engineRequestModel('object')
+        
+        if not cachedID and allocateDefaultIDs then
+            cachedID = engineRequestSAModel('object')
+        end
 
-	if not idCache[modelID] then
-		idCache[modelID] = engineRequestModel('object')
-		
-		if not idCache[modelID] then
-			if allowcateDefaultIDs then
-				idCache[modelID] = engineRequestSAModel('object')
-			end
-		end
-		return idCache[modelID],true
-	end
-		
+        if cachedID then
+            idCache[modelID] = cachedID
+            return cachedID, true
+        end
+    end
 
-	return idCache[modelID]
+    return cachedID or false
 end
 
-function requestTextureArchive(path,resourceName)
-	if fileExists(path) then
-		globalCache[resourceName][path] = globalCache[resourceName][path] or engineLoadTXD(path)
-		return globalCache[resourceName][path],path
-	else
-		return false
-	end
+
+local function requestAsset(path, resourceName, loadFunc)
+
+    globalCache[resourceName] = globalCache[resourceName] or {}
+
+    if not globalCache[resourceName][path] and fileExists(path) then
+        globalCache[resourceName][path] = loadFunc(path)
+    end
+
+    return globalCache[resourceName][path] or false
 end
 
-function requestCollision(path,resourceName)
-	if fileExists(path) then
-		globalCache[resourceName][path] = globalCache[resourceName][path] or engineLoadCOL(path)
-		return globalCache[resourceName][path],path
-	else
-		return false
-	end
+function requestTextureArchive(path, resourceName)
+    return requestAsset(path, resourceName, engineLoadTXD)
 end
 
-function requestModel(path,resourceName)
-	if path then
-		globalCache[resourceName][path] = globalCache[resourceName][path] or engineLoadDFF(path)
-		return globalCache[resourceName][path],path
-	end
+function requestCollision(path, resourceName)
+    return requestAsset(path, resourceName, engineLoadCOL)
 end
 
-function releaseCatche(resourceName)
-	if globalCache[resourceName] then
-		for path,loaded in pairs(globalCache[resourceName]) do
-			globalCache[resourceName][path] = nil
-		end
-		globalCache[resourceName] = nil
-		return true
-	else
-		return false
-	end
+function requestModel(path, resourceName)
+    return requestAsset(path, resourceName, engineLoadDFF)
+end
+
+function releaseCache(resourceName)
+    if globalCache[resourceName] then
+        for path in pairs(globalCache[resourceName]) do
+            globalCache[resourceName][path] = nil
+        end
+        globalCache[resourceName] = nil
+        return true
+    end
+    return false
 end

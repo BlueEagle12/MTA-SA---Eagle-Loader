@@ -1,26 +1,39 @@
 <meta>
-    <info type="script" name="eLoader" author="Blue Eagle" description="Eagle Map Loader" version="1.0" />
-    <min_mta_version client="1.5.8-9.20704"></min_mta_version>
     
+    <info type="script" name="eagleLoader" author="Blue Eagle" description="Eagle Map Loader" version="3.0" />
+    <min_mta_version client="1.6.0-9.22470" />
     
+    <!-- Server Scripts -->
     <script type="server" src="async.lua" />
     <script type="server" src="server/processor_S.lua" />
     
+	
+    <!-- ID Files -->
+    <script type="client" src="client/validID/idListPrep.lua" />
+    <file type="client" src="client/validID/sa_id_list.ID" />
+    <file type="client" src="client/validID/sa_full_id_list.ID" />
+	
+    <!-- Client Scripts -->
+
+    <script type="client" src="client/debugWriter.lua" />
     <script type="client" src="async.lua" />
     <script type="client" src="client/helper_C.lua" />
     <script type="client" src="client/cache_C.lua" />
-    <script type="client" src="client/definitionProccessor_C.lua" />
-    <script type="client" src="client/mapProccessor_C.lua" />
-    
-    <script type="client" src="client/validID/idListPrep.lua" />
-    <file type="client" src="client/validID/sa_id_list.ID" />
-	
+    <script type="client" src="client/elementProccessor_C.lua" />
+    <script type="client" src="client/definitionProcessor_C.lua" />
+    <script type="client" src="client/waterProccessor_C.lua" />
+    <script type="client" src="client/mapProcessor_C.lua" />
+
+    <!-- Client Exported Functions -->
     <export function="loadMapDefinitions" type="client" />
     <export function="unloadMapDefinitions" type="client" />
     <export function="streamObject" type="client" />
-	
-    <export function="getMaps" type="server" />
-    <export function="changeObjectModel" type="server" />
-    <export function="streamObject" type="server" />
+    <export function="streamBuilding" type="client" />
+    <export function="setElementStream" type="client" />
     
+    <!-- Server Exported Functions -->
+    <export function="getMaps" type="server" />
+    <export function="setElementStream" type="server" />
+    <export function="streamBuilding" type="server" />
+    <export function="streamObject" type="server" />
 </meta>
