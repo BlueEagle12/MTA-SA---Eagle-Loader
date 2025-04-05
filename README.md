@@ -11,13 +11,11 @@ The following is a list of features this resource provides
 #### Objects
 
 - [X] Object placement
+- [X] Building placement
 - [X] Custom ID assignment
 - [x] LOD placement and assignment
 - [X] Zone based map support
 - [x] Compatability with default SA map
-- [ ] MTA map editor (.map format) # Untested
-  - [ ] Import
-  - [ ] Export
   
 #### Definitions
 
@@ -25,10 +23,9 @@ The following is a list of features this resource provides
 - [X] Custom model loading
 - [X] Quick map loading
 - [X] Zone based map support
-- [ ] Object Effects
-  - [ ] Vegitation swaying
-  - [ ] Moving objects EX : LCs draw bridge
-  - [X] Day time & Night time only objects
+- [X] Object Effects
+- [X] TObjs (Daytime / nighttime objects)
+- [X] Full flag support
 
 ## Usage
 
@@ -45,14 +42,20 @@ See these two GITHUBs for map creation :
 
 [Map proccessor for generating maps](https://github.com/BlueEagle12/MTA-SA-Eagle-Map-Proccessor)
 
+
 #### Resource Exports
 
-* [X] - loadMapDefinitions - `ResoueceName,Table with map definitions`
+* [X] - loadMapDefinitions - `loadMapDefinitions ( ResoueceName, Table with map definitions )`
   - Used to load a map
-* [X] - unloadMapDefinitions - `ResourceName`
+* [X] - unloadMapDefinitions - `unloadMapDefinitions( ResourceName )`
   - Used to unload a map
-* [X] - changeObjectModel - `object,newID`
-  - Used to set an objects custom model (Changing objects ID will do the same thing!)
+* [X] - setElementStream - `setElementStream ( element theElement, int streamID )`
+  - Used to set an object or building ID. Using setElementID() will do the same thing.
+* [X] - streamObject - `streamObject ( int streamID, float x, float y, float z, [ float rx, float ry, float rz )`
+  - Create an object using eagleLoader, same pararmeters as createObject
+* [X] - streamBuilding - `streamBuilding ( int streamID, float x, float y, float z [, float rx, float ry, float rz, int interior = 0 ] )`
+  - Create a building using eagleLoader, same pararmeters as createBuilding
 
 
 [Discord](https://discord.gg/q8ZTfGqRXj)
+
