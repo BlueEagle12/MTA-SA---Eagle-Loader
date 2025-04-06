@@ -11,6 +11,10 @@ function requestModelID(modelID)
     if not cachedID then
         cachedID = engineRequestModel('object')
         
+        if cachedID > 19999 then
+            cachedID = nil
+        end
+
         if not cachedID and allocateDefaultIDs then
             cachedID = engineRequestSAModel('object')
         end

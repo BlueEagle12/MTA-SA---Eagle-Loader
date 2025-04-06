@@ -39,6 +39,11 @@ function onResourceStartTimer(resourceThatStarted)
 				local list = loadZone(resourceName,zone)
 				if list then
 					for i,v in pairs(list) do
+
+						if (string.find(v.id,"_lod")) and highDefLODs then
+							return
+						end
+
 						table.insert(definitionList,v)
 					end
 				end
@@ -48,12 +53,10 @@ function onResourceStartTimer(resourceThatStarted)
 
 		if removeDefaultMap then
 			if not mapUnloaded then
-				mapUnloaded = true
+				--mapUnloaded = true
 
 				setWaterLevel (-10000000)
-				for i=550,20000 do
-					removeWorldModel(i,10000,0,0,0)
-				end
+				removeGameWorld()
 				setOcclusionsEnabled(false)
 			end
 		end
@@ -76,11 +79,7 @@ function onResourceStartTimer(resourceThatStarted)
 	end
 end
 
-function onResourceStart(resourceThatStarted)
-	setTimer(onResourceStartTimer, 3000, 1,resourceThatStarted) 
-end
-
-addEventHandler( "onClientResourceStart", root, onResourceStart)
+addEventHandler( "onClientResourceStart", root, onResourceStartTimer)
 
 function loadZone(resourceName,zone)
 

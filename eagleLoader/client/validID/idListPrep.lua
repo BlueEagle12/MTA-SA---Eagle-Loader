@@ -1,4 +1,4 @@
--- // Load the definition and placement files outputted from Blender.
+
 saIDList = {}
 defaultIDs = {}
 currentSAIndex = 0

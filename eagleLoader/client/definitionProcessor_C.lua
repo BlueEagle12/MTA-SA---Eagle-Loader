@@ -5,6 +5,7 @@
 -- ===========================
 resource           = {} -- Holds map definitions and data
 resourceModels     = {} -- Holds models assigned to each resource
+resourceImages     = {}
 
 -- ===========================
 -- Streaming & Distances
@@ -12,6 +13,8 @@ resourceModels     = {} -- Holds models assigned to each resource
 streamingDistances = {} -- Stores streaming distances per model
 streamEverything   = true -- Set to true to stream all elements by default
 removeDefaultMap = true   -- Disable if you'd like to keep the SA map
+highDefLODs = false -- Remove default LODs and just make every model its own LOD
+streamingMemoryAllowcation = 512 -- If you experience pop-in increase this.
 
 -- ===========================
 -- Valid IDs & Definitions
@@ -35,9 +38,14 @@ lodParents = {}
 backFaceCull = {}
 uniqueIDs = {}
 drawDistanceMultiplier = 5
+textureIDs = {}
 
 
 
+if engineStreamingSetMemorySize then -- Increases maximum streaming memory if on nightly
+    engineStreamingSetMemorySize(streamingMemoryAllowcation * 1024 * 1024)
+    engineStreamingSetBufferSize(150 * 1024 * 1024)
+end
 
 function loadMapDefinitions(resourceName, mapDefinitions, last)
     resourceModels[resourceName] = {}
@@ -76,13 +84,18 @@ function loadMapDefinitions(resourceName, mapDefinitions, last)
 
             definitionZones[modelID] = zone
 			
-
-            if (lodDistance < 10) then
+            if highDefLODs then
                 engineSetModelLODDistance(modelID, 700*drawDistanceMultiplier, true )
                 streamingDistances[modelID] = 700*drawDistanceMultiplier
             else
-                engineSetModelLODDistance(modelID, lodDistance*drawDistanceMultiplier, true )
-                streamingDistances[modelID] = lodDistance*drawDistanceMultiplier
+                
+                if (lodDistance < 10) then
+                    engineSetModelLODDistance(modelID, 700*drawDistanceMultiplier, true )
+                    streamingDistances[modelID] = 700*drawDistanceMultiplier
+                else
+                    engineSetModelLODDistance(modelID, lodDistance*drawDistanceMultiplier, true )
+                    streamingDistances[modelID] = lodDistance*drawDistanceMultiplier
+                end
             end
 
             for i,v in pairs(objectFlags) do
@@ -93,11 +106,16 @@ function loadMapDefinitions(resourceName, mapDefinitions, last)
                 end
             end
 
-            loadAsset('txd', data.txd, resourceName, zone, modelID)
-            loadAsset('col', data.col, resourceName, zone, modelID)
-            loadAsset('dff', data.id, resourceName, zone, modelID, data['draw_last'] or data['additive'])
 
-
+            if fileExists(string.format(":%s/imgs/dff.img", resourceName)) then
+                loadImgAsset('txd', data.txd, resourceName, modelID)
+                loadImgAsset('col', data.col, resourceName, modelID)
+                loadImgAsset('dff', data.id, resourceName, modelID)
+            else
+                loadAsset('txd', data.txd, resourceName, zone, modelID)
+                loadAsset('col', data.col, resourceName, zone, modelID)
+                loadAsset('dff', data.id, resourceName, zone, modelID, data['draw_last'] or data['additive'])
+            end
 
             backFaceCull[data.id] = data['disable_backface_culling']
 
@@ -124,11 +142,62 @@ function findFile(assetName,assetType,resourceName,zone)
     end
 end
 
+
+function findImg(assetType,resourceName)
+    if not resourceImages[resourceName] then
+        resourceImages[resourceName] = {}
+    end
+
+    if not resourceImages[resourceName][assetType] then
+        resourceImages[resourceName][assetType] = engineLoadIMG(string.format(":%s/imgs/%s.img", resourceName, assetType))
+        engineAddImage( resourceImages[resourceName][assetType] )
+    end
+
+    local img = resourceImages[resourceName][assetType]
+
+    return img,string.format(":%s/imgs/%s.img", resourceName, assetType)
+end
+
+function requestTextureID(assetName,img,path)
+    if textureIDs[assetName] then
+        return textureIDs[assetName]
+    else
+        textureIDs[assetName] = engineRequestTXD(assetName)
+
+        engineImageLinkTXD( img, path, textureIDs[assetName] )
+
+        return textureIDs[assetName]
+    end
+end
+
+
+
+function loadImgAsset(assetType, assetName, resourceName, modelID)
+    if not assetName then return end
+
+    local img,path = findImg(assetType,resourceName)
+
+    if img then
+        local assetPath = string.format("%s.%s", assetName, assetType)
+
+        if assetType == 'txd' then
+            local tID = requestTextureID(assetName,img,assetPath)
+            engineSetModelTXDID(modelID, tID)
+        elseif assetType == 'col' then
+            local asset = engineImageGetFile(img, assetPath)
+            local col = engineLoadCOL(asset)
+            engineReplaceCOL(col, modelID)
+        elseif assetType == 'dff' then
+            engineImageLinkDFF(img,assetPath,modelID)
+        end
+    else
+        outputDebugString2(string.format('Image: %s could not be found!', path))
+    end
+end
+
 function loadAsset(assetType, assetName, resourceName, zone, modelID, alpha)
     if not assetName then return end
 
-
-    local isTXD = (assetType == "txd")
     local assetPath = findFile(assetName,assetType,resourceName,zone)
 
     if assetPath then
@@ -143,7 +212,7 @@ function loadAsset(assetType, assetName, resourceName, zone, modelID, alpha)
             elseif assetType == 'col' then
                 engineReplaceCOL(asset, modelID)
             elseif assetType == 'dff' then
-                local loaded = engineReplaceModel(asset, modelID, alpha or false)
+                engineReplaceModel(asset, modelID, alpha or false)
             end
         
             -- Cache the loaded asset for release
@@ -161,8 +230,27 @@ function loaded(resourceName)
 	loadedFunction (resourceName)
 	initializeObjects()
     initializeObjects()
+
+    engineRestreamWorld()
+
     writeDebugFile()
+
+    removeWorldMapConfirm()
+    setTimer(removeWorldMapConfirm,1000,5) -- Repeat because for some reason sometimes it doesn't remove initially
 end
+
+
+function removeWorldMapConfirm()
+
+    if removeDefaultMap then
+        if not mapUnloaded then
+            removeGameWorld()
+            setOcclusionsEnabled(false)
+        end
+    end
+end
+
+
 				
 function initializeObjects()
 
@@ -188,8 +276,6 @@ function initializeObjects()
         end
     end
 end
-
-
 
 function loadedFunction(resourceName)
     if not startTickCount or type(startTickCount) ~= "number" then
@@ -250,16 +336,26 @@ function setElementStream(object, newModel, streamNew, initial, lodParent,unique
             end
 
 
-            
-            if lodParent then
-                lodParents[object] = lodParent
+            if highDefLODs and lodParent then
+                if getElementType(object) == 'building' then
+                    local x,y,z = getElementPosition(object)
+                    local xr,yr,zr = getElementRotation(object)
+                    local build = createBuilding(1337,x,y,z,xr,yr,zr)
+                    setElementModel(build,getElementModel(object))
+                    setLowLODElement(object, build)
+                end
+            else
 
-                local parent = (itemIDListUnique[lodParent] or {})[uniqueID or 0] or (itemIDList[lodParent] or {})[1]
-                
-                if parent then
-                    setLowLODElement(object, parent)
-                    if lodAttach[lodParent] then
-                        attachElements(object, children)
+                if lodParent then
+                    lodParents[object] = lodParent
+
+                    local parent = (itemIDListUnique[lodParent] or {})[uniqueID or 0] or (itemIDList[lodParent] or {})[1]
+                    
+                    if parent then
+                        setLowLODElement(object, parent)
+                        if lodAttach[lodParent] then
+                            attachElements(object, children)
+                        end
                     end
                 end
             end

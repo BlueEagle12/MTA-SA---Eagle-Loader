@@ -2,6 +2,11 @@ function streamMapElements(resourceName, elementList, last)
 	local objects = {}
 	
     for _, element in ipairs(elementList) do
+		if (string.find(element.id,"_lod")) and highDefLODs then
+			return
+		end
+
+
 		if element.type == "building" then
 			local nElement = streamBuilding(element.id,element.posX,element.posY,element.posZ,element.rotX,element.rotY,element.rotZ,element.interior,element.lodParent,element.uniqueID,true)
 			if nElement then
