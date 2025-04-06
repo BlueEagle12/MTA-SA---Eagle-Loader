@@ -136,3 +136,57 @@ function splitStringByComma(inputString)
         return {inputString}
     end
 end
+
+
+
+
+function findImg(assetType,resourceName)
+    if not resourceImages[resourceName] then
+        resourceImages[resourceName] = {}
+    end
+
+    if not resourceImages[resourceName][assetType] then
+        resourceImages[resourceName][assetType] = engineLoadIMG(string.format(":%s/imgs/%s.img", resourceName, assetType))
+        engineAddImage( resourceImages[resourceName][assetType] )
+    end
+
+    local img = resourceImages[resourceName][assetType]
+
+    return img,string.format(":%s/imgs/%s.img", resourceName, assetType)
+end
+
+function prepIMGFiles(img,resourceName,path)
+    local filesInArchive = engineImageGetFiles( img )
+
+    for i = 1, #filesInArchive do
+        imageFiles[resourceName][filesInArchive[i]] = img
+    end
+
+    print(path)
+end
+
+
+function prepResourceIMGs(resourceName)
+    if fileExists(string.format(":%s/imgs/dff.img", resourceName)) then
+        imageFiles[resourceName] = {}
+
+        for _,v in pairs(IMGNames) do
+            for i = 1, maxIMG do
+                if (i == 1) then
+                    if fileExists(string.format(":%s/imgs/%s_%s.img", resourceName,v,i)) then
+                        local img = findImg(v..'_'..i,resourceName)
+                        prepIMGFiles(img,resourceName,string.format(":%s/imgs/%s_%s.img", resourceName,v,i))
+                    elseif fileExists(string.format(":%s/imgs/%s.img", resourceName,v)) then
+                        local img = findImg(v,resourceName)
+                        prepIMGFiles(img,resourceName,string.format(":%s/imgs/%s.img", resourceName,v))
+                    end
+                else
+                    if fileExists(string.format(":%s/imgs/%s_%s.img", resourceName,v,i)) then
+                        local img = findImg(v..'_'..i,resourceName)
+                        prepIMGFiles(img,resourceName,string.format(":%s/imgs/%s_%s.img", resourceName,v,i))
+                    end
+                end
+            end
+        end
+    end
+end

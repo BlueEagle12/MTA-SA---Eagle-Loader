@@ -5,7 +5,16 @@
 -- ===========================
 resource           = {} -- Holds map definitions and data
 resourceModels     = {} -- Holds models assigned to each resource
+
+
+-- ===========================
+-- IMG Management
+-- ===========================
 resourceImages     = {}
+IMGNames = {'dff','col','txd'}  -- Check for these IMGs
+maxIMG = 2                      -- How many of each will we iterate through?
+imageFiles = {}
+
 
 -- ===========================
 -- Streaming & Distances
@@ -60,6 +69,8 @@ function loadMapDefinitions(resourceName, mapDefinitions, last)
     for _, obj in pairs(getElementsByType('building')) do
         validID[getElementID(obj)] = true
     end
+
+    prepResourceIMGs(resourceName)
 
     Async:setPriority("medium")
     Async:foreach(mapDefinitions, function(data)
@@ -142,22 +153,6 @@ function findFile(assetName,assetType,resourceName,zone)
     end
 end
 
-
-function findImg(assetType,resourceName)
-    if not resourceImages[resourceName] then
-        resourceImages[resourceName] = {}
-    end
-
-    if not resourceImages[resourceName][assetType] then
-        resourceImages[resourceName][assetType] = engineLoadIMG(string.format(":%s/imgs/%s.img", resourceName, assetType))
-        engineAddImage( resourceImages[resourceName][assetType] )
-    end
-
-    local img = resourceImages[resourceName][assetType]
-
-    return img,string.format(":%s/imgs/%s.img", resourceName, assetType)
-end
-
 function requestTextureID(assetName,img,path)
     if textureIDs[assetName] then
         return textureIDs[assetName]
@@ -175,10 +170,11 @@ end
 function loadImgAsset(assetType, assetName, resourceName, modelID)
     if not assetName then return end
 
-    local img,path = findImg(assetType,resourceName)
+    local assetPath = string.format("%s.%s", assetName, assetType)
+
+    local img,path = imageFiles[resourceName][assetPath]
 
     if img then
-        local assetPath = string.format("%s.%s", assetName, assetType)
 
         if assetType == 'txd' then
             local tID = requestTextureID(assetName,img,assetPath)
@@ -190,8 +186,6 @@ function loadImgAsset(assetType, assetName, resourceName, modelID)
         elseif assetType == 'dff' then
             engineImageLinkDFF(img,assetPath,modelID)
         end
-    else
-        outputDebugString2(string.format('Image: %s could not be found!', path))
     end
 end
 
