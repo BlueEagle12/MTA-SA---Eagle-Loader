@@ -16,7 +16,8 @@ The following is a list of features this resource provides
 - [x] LOD placement and assignment
 - [X] Zone based map support
 - [x] Compatability with default SA map
-  
+- [x] IMG support
+
 #### Definitions
 
 - [X] Custom ID assignment
