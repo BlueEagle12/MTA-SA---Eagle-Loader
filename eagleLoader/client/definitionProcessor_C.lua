@@ -288,6 +288,8 @@ function loadedFunction(resourceName)
     createTrayNotification(string.format("You have finished loading: %s", resourceName), "info")
 end
 
+selfLODList = {}
+
 function setElementStream(object, newModel, streamNew, initial, lodParent,uniqueID)
 
     if not isElement(object) or not newModel then
@@ -332,23 +334,48 @@ function setElementStream(object, newModel, streamNew, initial, lodParent,unique
 
             if highDefLODs and lodParent then
                 if getElementType(object) == 'building' then
+                    if selfLODList[object] then
+                        destroyElement(selfLODList[object])
+                    end
+
                     local x,y,z = getElementPosition(object)
                     local xr,yr,zr = getElementRotation(object)
                     local build = createBuilding(1337,x,y,z,xr,yr,zr)
                     setElementModel(build,getElementModel(object))
                     setLowLODElement(object, build)
+
+                    selfLODList[object] = build
                 end
             else
 
                 if lodParent then
-                    lodParents[object] = lodParent
 
-                    local parent = (itemIDListUnique[lodParent] or {})[uniqueID or 0] or (itemIDList[lodParent] or {})[1]
-                    
-                    if parent then
-                        setLowLODElement(object, parent)
-                        if lodAttach[lodParent] then
-                            attachElements(object, children)
+                    if (lodParent == 'self') then --// Updated way of selfIDing.
+                        if getElementType(object) == 'building' then
+                            if selfLODList[object] then
+                                destroyElement(selfLODList[object])
+                            end
+                            
+                            local x,y,z = getElementPosition(object)
+                            local xr,yr,zr = getElementRotation(object)
+                            local build = createBuilding(1337,x,y,z,xr,yr,zr)
+                            setElementModel(build,getElementModel(object))
+                            setLowLODElement(object, build)
+
+                            selfLODList[object] = build
+
+                            print("SELF LOD")
+                        end
+                    else
+                        lodParents[object] = lodParent
+
+                        local parent = (itemIDListUnique[lodParent] or {})[uniqueID or 0] or (itemIDList[lodParent] or {})[1]
+                        
+                        if parent then
+                            setLowLODElement(object, parent)
+                            if lodAttach[lodParent] then
+                                attachElements(object, children)
+                            end
                         end
                     end
                 end
