@@ -1,5 +1,6 @@
 resourceLoaded = {}
 mapUnloaded = false
+lodIDList = {}
 
 function getLines(file)
 	local fData = fileRead(file, fileGetSize(file))
@@ -28,23 +29,26 @@ function onResourceStartTimer(resourceThatStarted)
 				if list then
 					for i,v in ipairs(list) do
 						table.insert(elementList,v)
+
+						local lod = v.lodParent
+						if lod then
+							lodIDList[lod] = true
+						end
 					end
 				end
 			end
-			
-			-- [[ Load definitions secound ]] -- 
-			
+
 			local zones = getLines(fileOpen(path))
 			for _,zone in pairs(zones) do
 				local list = loadZone(resourceName,zone)
 				if list then
 					for i,v in pairs(list) do
 
-						if (string.find(v.id,"_lod")) and highDefLODs then
-							return
+						if (lodIDList[v.id] and highDefLODs) then
+							-- Ignore
+						else
+							table.insert(definitionList,v)
 						end
-
-						table.insert(definitionList,v)
 					end
 				end
 			end
@@ -52,22 +56,12 @@ function onResourceStartTimer(resourceThatStarted)
 
 
 		if removeDefaultMap then
-			if not mapUnloaded then
-				--mapUnloaded = true
-
-				setWaterLevel (-10000000)
-				removeGameWorld()
-				setOcclusionsEnabled(false)
-			end
+			setWaterLevel (-10000000)
+			removeGameWorld()
+			setOcclusionsEnabled(false)
 		end
-
 		
-		local last = elementList[#elementList]
-		if last then
-			local lastID = last.id
-			
-			streamMapElements(resourceName,elementList,lastID)
-		end
+		streamMapElements(resourceName,elementList)
 
 		local last = definitionList[#definitionList]
 		if last then

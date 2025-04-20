@@ -2,8 +2,6 @@ globalCache = {}
 idCache = {}
 useLODs = {}
 
-allocateDefaultIDs = true --// Use SA Default IDs if we're out of custom allowcated IDs.
-
 -- Request a model ID
 function requestModelID(modelID)
     local cachedID = idCache[modelID]

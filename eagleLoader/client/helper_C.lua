@@ -11,7 +11,9 @@ streamTimeObj = {}
 
 -- Set stream time for models
 function setModelStreamTime(model, name, sIn, sOut)
-    streamTimes[model] = {sIn, sOut}
+    if model then
+        streamTimes[model] = {sIn, sOut}
+    end
     streamTimes[name] = {sIn, sOut}
 end
 
@@ -36,6 +38,10 @@ end
 setTimer(function()
     local hours, minutes = getTime()
     for obj, _ in pairs(timeTable) do
+
+        if not isElement(obj) then
+            timeTable[obj] = nil
+        end
         local model = getElementModel(obj)
         local timeData = streamTimes[model]
 
@@ -48,11 +54,13 @@ setTimer(function()
                 if shouldStreamIn and currentState ~= 1 then
                     streamTimeObj[obj] = 1
                     setElementInterior(obj, 0)
+                    setElementAlpha(obj,1)
                     local lodDistance = streamingDistances[model] or 0
 
                 elseif not shouldStreamIn and currentState ~= 2 then
                     streamTimeObj[obj] = 2
                     setElementInterior(obj, 52)
+                    setElementAlpha(obj,0)
                 end
             end
         end

@@ -6,13 +6,10 @@
 resource           = {} -- Holds map definitions and data
 resourceModels     = {} -- Holds models assigned to each resource
 
-
 -- ===========================
 -- IMG Management
 -- ===========================
 resourceImages     = {}
-IMGNames = {'dff','col','txd'}  -- Check for these IMGs
-maxIMG = 2                      -- How many of each will we iterate through?
 imageFiles = {}
 
 
@@ -20,23 +17,13 @@ imageFiles = {}
 -- Streaming & Distances
 -- ===========================
 streamingDistances = {} -- Stores streaming distances per model
-streamEverything   = true -- Set to true to stream all elements by default
-removeDefaultMap = true   -- Disable if you'd like to keep the SA map
-highDefLODs = false -- Remove default LODs and just make every model its own LOD
-streamingMemoryAllowcation = 512 -- If you experience pop-in increase this.
 
 -- ===========================
 -- Valid IDs & Definitions
 -- ===========================
 validID            = {} -- Tracks valid IDs of loaded models
 definitionZones    = {} -- Stores zones associated with model definitions
-
--- ===========================
--- LOD Attachments
--- ===========================
-lodAttach = {           -- Anything that LODs should be attached to, currently includes Tram for LC.
-    ["Tram"] = true
-}
+timeIDs            = {}
 
 -- ===========================
 -- Item IDs
@@ -46,14 +33,12 @@ itemIDListUnique = {} -- Unique ID list (Used for duplicate IDs)
 lodParents = {}
 backFaceCull = {}
 uniqueIDs = {}
-drawDistanceMultiplier = 5
 textureIDs = {}
-
 
 
 if engineStreamingSetMemorySize then -- Increases maximum streaming memory if on nightly
     engineStreamingSetMemorySize(streamingMemoryAllowcation * 1024 * 1024)
-    engineStreamingSetBufferSize(150 * 1024 * 1024)
+    engineStreamingSetBufferSize(streamingBufferAllowcation * 1024 * 1024)
 end
 
 function loadMapDefinitions(resourceName, mapDefinitions, last)
@@ -131,6 +116,7 @@ function loadMapDefinitions(resourceName, mapDefinitions, last)
             backFaceCull[data.id] = data['disable_backface_culling']
 
             if data.timeIn then
+                timeIDs[data.id] = {tonumber(data.timeIn), tonumber(data.timeOut)}
                 setModelStreamTime(modelID,data.id, tonumber(data.timeIn), tonumber(data.timeOut))
             end
         end
@@ -210,7 +196,7 @@ function loadAsset(assetType, assetName, resourceName, zone, modelID, alpha)
             end
         
             -- Cache the loaded asset for release
-            table.insert(resource[resourceName], cachePath)
+            --table.insert(resource[resourceName], cachePath)
         else
             outputDebugString2(string.format('%s: %s could not be loaded!', assetType:upper(), assetName))
         end
@@ -345,6 +331,9 @@ function setElementStream(object, newModel, streamNew, initial, lodParent,unique
                     setLowLODElement(object, build)
 
                     selfLODList[object] = build
+
+                    prepTime(build, getElementModel(object))
+
                 end
             else
 
@@ -364,6 +353,8 @@ function setElementStream(object, newModel, streamNew, initial, lodParent,unique
 
                             selfLODList[object] = build
 
+                            prepTime(build, getElementModel(object))
+                            
                             print("SELF LOD")
                         end
                     else
@@ -408,6 +399,7 @@ function streamObject(id,x,y,z,xr,yr,zr,interior,lodParent,uniqueID,int)
 
 	local obj = createObject(1337,x,y,z,xr,yr,zr)
 	
+    setElementInterior(obj,(interior or 0))
 	local cachedModel = true--idCache[id]
 	
     if lodParent then
@@ -451,7 +443,7 @@ function streamBuilding(id,x,y,z,xr,yr,zr,interior,lodParent,uniqueID,int)
 	if cachedModel then
 		if (x > -3000) and (x < 3000) and (y > -3000) and (y < 3000) then
 			
-			local build = createBuilding(1337,x,y,z,xr,yr,zr)
+			local build = createBuilding(1337,x,y,z,xr,yr,zr,(interior == 0 and nil or interior))
 			
 			if (not int) then
 				setElementStream(build,id,true,nil,lodParent,uniqueID)
