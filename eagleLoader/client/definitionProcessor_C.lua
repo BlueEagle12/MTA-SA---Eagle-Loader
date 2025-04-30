@@ -64,13 +64,15 @@ function loadMapDefinitions(resourceName, mapDefinitions, last)
         end
 
         local modelID, isNew = requestModelID(data.id, true)
-        if not modelID then
+        if not tonumber(modelID) then
             outputDebugString2(string.format("Error: Failed to request model ID for object with ID: %s", tostring(data.id)))
             return
         end
 
         if isNew then
-            resourceModels[resourceName][modelID] = true
+            if resourceModels[resourceName] then
+                resourceModels[resourceName][modelID] = true
+            end
         end
 
         if streamEverything or validID[data.id] then
@@ -79,7 +81,10 @@ function loadMapDefinitions(resourceName, mapDefinitions, last)
             local lodEnabled = (data.lod == 'true')
 
             definitionZones[modelID] = zone
-			
+			definitionZones[data.id] = zone
+
+
+
             if highDefLODs then
                 engineSetModelLODDistance(modelID, 700*drawDistanceMultiplier, true )
                 streamingDistances[modelID] = 700*drawDistanceMultiplier
@@ -186,6 +191,8 @@ function loadAsset(assetType, assetName, resourceName, zone, modelID, alpha)
                         assetType == 'dff' and requestModel
 
         local asset, cachePath = loaderFunc(assetPath, assetName)
+
+        
         if asset then
             if assetType == 'txd' then
                 engineImportTXD(asset, modelID)
@@ -199,12 +206,19 @@ function loadAsset(assetType, assetName, resourceName, zone, modelID, alpha)
             --table.insert(resource[resourceName], cachePath)
         else
             outputDebugString2(string.format('%s: %s could not be loaded!', assetType:upper(), assetName))
+
+            idCache[assetName] = nil
         end
     else
     local assetPath = string.format(":%s/zones/%s/%s/%s.%s", resourceName, zone, assetType, assetName, assetType)
         outputDebugString2(string.format('%s: %s could not be found!', assetType:upper(), assetName.."."..assetType))
+        idCache[assetName] = nil
     end
 end
+
+local icChe = {}
+idx = 0
+local batchSize = 100
 
 function loaded(resourceName)
 	loadedFunction (resourceName)
@@ -218,6 +232,32 @@ function loaded(resourceName)
     removeWorldMapConfirm()
     setTimer(removeWorldMapConfirm,1000,5) -- Repeat because for some reason sometimes it doesn't remove initially
 end
+
+
+
+
+
+
+function onClientElementStreamIn()
+	local validElement = isElement(source)
+
+	if (not validElement) then
+		return false
+	end
+
+
+    local model = getElementModel(source)
+
+    for i,v in pairs(idCache) do
+        if (v == model) then
+            outputDebugString2(string.format('%s: %s Streamed!', v ,i))
+        end
+    end
+
+end
+addEventHandler("onClientElementStreamIn", resourceRoot, onClientElementStreamIn)
+
+
 
 
 function removeWorldMapConfirm()
@@ -464,7 +504,6 @@ function streamBuilding(id,x,y,z,xr,yr,zr,interior,lodParent,uniqueID,int)
 		outputDebugString2(string.format("Error: Model ID %s not found in cache.", id))
 	end
 end
-
 
 function onElementDataChange(dataName, oldValue)
 

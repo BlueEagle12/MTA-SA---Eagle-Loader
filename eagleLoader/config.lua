@@ -19,6 +19,7 @@ highDefLODs                 = false     -- Remove default LODs and just make eve
 streamingMemoryAllowcation  = 512       -- (Default : 512) If you experience pop-in increase this. Max tested stable : 1024
 streamingBufferAllowcation  = 150       -- (Default : 150) If you experience pop-in increase this. Max tested stable : 512
 drawDistanceMultiplier      = 2         -- (Default : 2) Increase drawdistance by this amount, if you experience pop-in or performance issues lower this
+modelCrashDebug             = false      -- Do not load map, but at 0,0,0 spawn every object consecutively and output the last spawned model in debug.txt; use this to track down crashes
 
 -- ===========================
 -- LOD Attachments

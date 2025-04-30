@@ -198,3 +198,83 @@ function prepResourceIMGs(resourceName)
         end
     end
 end
+
+
+
+
+
+
+
+
+
+function showNearbyBuildings(_,radius)
+    local px, py, pz = getElementPosition(localPlayer)
+    radius = tonumber(radius) or 35
+    local buildings = getElementsByType("building")
+    local count = 0
+
+    outputChatBox("#0066CC[Nearby Buildings]#FFFFFF Scanning within #FFFF00" .. radius .. "m#FFFFFF...", 255, 255, 255,true)
+
+    for _, b in ipairs(buildings) do
+        local ox, oy, oz = getElementPosition(b)
+        local dist = getDistanceBetweenPoints3D(px, py, pz, ox, oy, oz)
+
+        if dist <= radius then
+            local model = getElementModel(b)
+            local id = getElementID(b) or "N/A"
+            local zone = definitionZones[id] or "Unknown"
+
+            outputChatBox(string.format(
+                "#CCCCCC • #00BFFFModel: #FFFFFF%s  #AAAAAA|  #00BFFFID: #FFFFFF%s  #AAAAAA|  #00BFFFZone: #FFFFFF%s  #AAAAAA|  #00BFFFDist: #FFFFFF%sm",
+                model, id, zone, math.floor(dist)
+            ), 255, 255, 255,true)
+
+            count = count + 1
+        end
+    end
+
+    if count == 0 then
+        outputChatBox("#FF4444No buildings found within #FFFF00" .. radius .. "m#FF4444.", 255, 255, 255,true)
+    else
+        outputChatBox("#00FF00Total buildings found: #FFFFFF" .. count, 255, 255, 255,true)
+    end
+end
+
+addCommandHandler("nearbybuildings", showNearbyBuildings)
+
+
+
+function showNearbyObjects(_,radius)
+    local px, py, pz = getElementPosition(localPlayer)
+    radius = tonumber(radius) or 35
+    local objects = getElementsByType("object")
+    local count = 0
+
+    outputChatBox("#0066CC[Nearby Objects]#FFFFFF Scanning within #FFFF00" .. radius .. "m#FFFFFF...", 255, 255, 255,true)
+
+    for _, obj in ipairs(objects) do
+        local ox, oy, oz = getElementPosition(obj)
+        local dist = getDistanceBetweenPoints3D(px, py, pz, ox, oy, oz)
+
+        if dist <= radius then
+            local model = getElementModel(obj)
+            local id = getElementID(obj) or "N/A"
+            local zone = definitionZones[id] or "Unknown"
+
+            outputChatBox(string.format(
+                "#CCCCCC • #00BFFFModel: #FFFFFF%s  #AAAAAA|  #00BFFFID: #FFFFFF%s  #AAAAAA|  #00BFFFZone: #FFFFFF%s  #AAAAAA|  #00BFFFDist: #FFFFFF%sm",
+                model, id, zone, math.floor(dist)
+            ), 255, 255, 255,true)
+
+            count = count + 1
+        end
+    end
+
+    if count == 0 then
+        outputChatBox("#FF4444No objects found within #FFFF00" .. radius .. "m#FF4444.", 255, 255, 255,true)
+    else
+        outputChatBox("#00FF00Total objects found: #FFFFFF" .. count, 255, 255, 255,true)
+    end
+end
+
+addCommandHandler("nearbyobjects", showNearbyObjects)

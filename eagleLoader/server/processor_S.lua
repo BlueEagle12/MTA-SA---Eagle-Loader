@@ -1,9 +1,9 @@
 
 
 function playerLoaded ( loadTime,resource )
-	local minutes = tonumber(loadTime) / (1000 * 60)
+	local secounds = (tonumber(loadTime) / (1000 * 60))* 60
 	
-	print(getPlayerName(client),'Loaded '..resource..' In : '..(minutes),' Minutes')
+	print(getPlayerName(client),'Loaded '..resource..' In : '..(secounds),' Secounds')
 
 end
 addEvent( "onPlayerLoad", true )
