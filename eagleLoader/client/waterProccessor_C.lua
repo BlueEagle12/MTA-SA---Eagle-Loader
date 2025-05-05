@@ -13,52 +13,55 @@ end
 
 function parseWaterDat(filePath,resourceName)
     local waterData = {}
-
-    local file = fileOpen(filePath)
-    if not file then
-        outputDebugString("Failed to open: " .. tostring(filePath), 1)
-        return {}
-    end
-
-    local content = fileRead(file, fileGetSize(file))
-    fileClose(file)
-
-    cLine = 0
-
-    for line in string.gmatch(content, "[^\r\n]+") do
-        cLine = cLine + 1
-        local coords = {}
-        for num in string.gmatch(line, "[-%d%.]+") do
-            table.insert(coords, tonumber(num))
+    if fileExists(filePath) then
+        local file = fileOpen(filePath)
+        if not file then
+            outputDebugString("Failed to open: " .. tostring(filePath), 1)
+            return {}
         end
 
-        if #coords == 29 then
-            local function getClamped(i)
-                local x = clamp(coords[i] + shiftX, WORLD_MIN, WORLD_MAX)
-                local y = clamp(coords[i+1] + shiftY, WORLD_MIN, WORLD_MAX)
-                local z = clamp(coords[i+2] + shiftZ, Z_MIN, Z_MAX)
-                return x, y, z
+        local content = fileRead(file, fileGetSize(file))
+        fileClose(file)
+
+        cLine = 0
+
+        for line in string.gmatch(content, "[^\r\n]+") do
+            cLine = cLine + 1
+            local coords = {}
+            for num in string.gmatch(line, "[-%d%.]+") do
+                table.insert(coords, tonumber(num))
             end
 
-            local x1, y1, z1 = getClamped(1)
-            local x2, y2, z2 = getClamped(8)
-            local x3, y3, z3 = getClamped(15)
-            local x4, y4, z4 = getClamped(22)
+            if #coords == 29 then
+                local function getClamped(i)
+                    local x = clamp(coords[i] + shiftX, WORLD_MIN, WORLD_MAX)
+                    local y = clamp(coords[i+1] + shiftY, WORLD_MIN, WORLD_MAX)
+                    local z = clamp(coords[i+2] + shiftZ, Z_MIN, Z_MAX)
+                    return x, y, z
+                end
 
-            table.insert(waterData, {
-                x1 = x1, y1 = y1, z1 = z1,
-                x2 = x2, y2 = y2, z2 = z2,
-                x3 = x3, y3 = y3, z3 = z3,
-                x4 = x4, y4 = y4, z4 = z4,
-                type = coords[29], name = cLine
-            })
-        else
-            print("MALFORMED WATER - "..line)
+                local x1, y1, z1 = getClamped(1)
+                local x2, y2, z2 = getClamped(8)
+                local x3, y3, z3 = getClamped(15)
+                local x4, y4, z4 = getClamped(22)
+
+                table.insert(waterData, {
+                    x1 = x1, y1 = y1, z1 = z1,
+                    x2 = x2, y2 = y2, z2 = z2,
+                    x3 = x3, y3 = y3, z3 = z3,
+                    x4 = x4, y4 = y4, z4 = z4,
+                    type = coords[29], name = cLine
+                })
+            else
+                print("MALFORMED WATER - "..line)
+            end
         end
-    end
 
-    outputDebugString("Parsed " .. tostring(#waterData) .. " water quads from " .. filePath)
-    createWaterPlanes(waterData,resourceName)
+        outputDebugString("Parsed " .. tostring(#waterData) .. " water quads from " .. filePath)
+        createWaterPlanes(waterData,resourceName)
+    else
+        outputDebugString2("Error: No water.dat file present.")
+    end
 end
 radarAreas = {}
 

@@ -109,11 +109,25 @@ function loadMapDefinitions(resourceName, mapDefinitions, last)
 
 
             if fileExists(string.format(":%s/imgs/dff.img", resourceName)) then
-                loadImgAsset('txd', data.txd, resourceName, modelID)
+                if split(data.txd,',') then
+                    txdTable = split(data.txd,',')
+                    for ti=0,#txdTable do
+                        loadImgAsset('txd', txdTable[ti], resourceName, modelID)
+                    end
+                else
+                    loadImgAsset('txd', data.txd, resourceName, modelID)
+                end
                 loadImgAsset('col', data.col, resourceName, modelID)
                 loadImgAsset('dff', data.id, resourceName, modelID)
             else
-                loadAsset('txd', data.txd, resourceName, zone, modelID)
+                if split(data.txd,',') then
+                    txdTable = split(data.txd,',')
+                    for ti=0,#txdTable do
+                        loadAsset('txd', txdTable[ti], resourceName, zone, modelID)
+                    end
+                else
+                    loadAsset('txd', data.txd, resourceName, zone, modelID)
+                end
                 loadAsset('col', data.col, resourceName, zone, modelID)
                 loadAsset('dff', data.id, resourceName, zone, modelID, data['draw_last'] or data['additive'])
             end
@@ -379,7 +393,7 @@ function setElementStream(object, newModel, streamNew, initial, lodParent,unique
 
                 if lodParent then
 
-                    if (lodParent == 'self') then --// Updated way of selfIDing.
+                    if (lodParent == 'self') or (lodParent == 'Self') then --// Updated way of selfIDing.
                         if getElementType(object) == 'building' then
                             if selfLODList[object] then
                                 destroyElement(selfLODList[object])
@@ -429,80 +443,88 @@ addEventHandler("setElementStream", resourceRoot, setElementStream)
 
 
 function streamObject(id,x,y,z,xr,yr,zr,interior,lodParent,uniqueID,int)
-	local x = x or 0
-	local y = y or 0
-	local z = z or 0
+    if id then
+        local x = x or 0
+        local y = y or 0
+        local z = z or 0
 
-	local xr = tonumber(xr) or 0
-	local yr = tonumber(yr) or 0
-	local zr = tonumber(zr) or 0
+        local xr = tonumber(xr) or 0
+        local yr = tonumber(yr) or 0
+        local zr = tonumber(zr) or 0
 
-	local obj = createObject(1337,x,y,z,xr,yr,zr)
-	
-    setElementInterior(obj,(interior or 0))
-	local cachedModel = true--idCache[id]
-	
-    if lodParent then
-        lodParents[obj] = lodParent
+        local obj = createObject(1337,x,y,z,xr,yr,zr)
+        
+        setElementInterior(obj,(interior or 0))
+        local cachedModel = true--idCache[id]
+        
+        if lodParent then
+            lodParents[obj] = lodParent
+        end
+
+        if uniqueID then
+            uniqueIDs[obj] = uniqueID
+        end
+
+        backFaceCull[id] = true
+
+
+        if cachedModel then
+
+
+            if (not int) then
+                setElementStream(obj,id,true,nil,lodParent,uniqueID)
+            end
+                
+            setElementID(obj,id)
+            
+            return obj
+        else
+            outputDebugString2(string.format("Error: Model ID %s not found in cache.", id))
+        end
+    else
+        outputDebugString2("Error: Trying to create invalid object.")
     end
-
-    if uniqueID then
-        uniqueIDs[obj] = uniqueID
-    end
-
-    backFaceCull[id] = true
-
-
-	if cachedModel then
-
-
-		if (not int) then
-			setElementStream(obj,id,true,nil,lodParent,uniqueID)
-		end
-			
-		setElementID(obj,id)
-		
-		return obj
-	else
-		outputDebugString2(string.format("Error: Model ID %s not found in cache.", id))
-	end
 end
 
 function streamBuilding(id,x,y,z,xr,yr,zr,interior,lodParent,uniqueID,int)
-	local x = tonumber(x) or 0
-	local y = tonumber(y) or 0
-	local z = tonumber(z) or 0
-	
-	local xr = tonumber(xr) or 0
-	local yr = tonumber(yr) or 0
-	local zr = tonumber(zr) or 0
-
-	local cachedModel = true --idCache[id]
-
-
-	if cachedModel then
-		if (x > -3000) and (x < 3000) and (y > -3000) and (y < 3000) then
-			
-			local build = createBuilding(1337,x,y,z,xr,yr,zr,(interior == 0 and nil or interior))
-			
-			if (not int) then
-				setElementStream(build,id,true,nil,lodParent,uniqueID)
-			end
-
-            if lodParent then
-                lodParents[build] = lodParent
-            end
+    if id then
+        local x = tonumber(x) or 0
+        local y = tonumber(y) or 0
+        local z = tonumber(z) or 0
         
-            if uniqueID then
-                uniqueIDs[build] = uniqueID
+        local xr = tonumber(xr) or 0
+        local yr = tonumber(yr) or 0
+        local zr = tonumber(zr) or 0
+
+        local cachedModel = true --idCache[id]
+
+
+        if cachedModel then
+            if (x > -3000) and (x < 3000) and (y > -3000) and (y < 3000) then
+                
+                local build = createBuilding(1337,x,y,z,xr,yr,zr,(interior == 0 and nil or interior))
+                
+                if (not int) then
+                    setElementStream(build,id,true,nil,lodParent,uniqueID)
+                end
+
+                if lodParent then
+                    lodParents[build] = lodParent
+                end
+            
+                if uniqueID then
+                    uniqueIDs[build] = uniqueID
+                end
+                
+                setElementID(build,id)
+                return build
             end
-			
-			setElementID(build,id)
-			return build
-		end
-	else
-		outputDebugString2(string.format("Error: Model ID %s not found in cache.", id))
-	end
+        else
+            outputDebugString2(string.format("Error: Model ID %s not found in cache.", id))
+        end
+    else
+        outputDebugString2("Error: Trying to create invalid building.")
+    end
 end
 
 function onElementDataChange(dataName, oldValue)

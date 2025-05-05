@@ -9,6 +9,19 @@ function getLines(file)
 	return fProccessed
 end
 
+function splitFileLines(file)
+	local data = fileRead(file, fileGetSize(file))
+	fileClose (file)
+
+
+    local result = {}
+    for line in data:gmatch("[^\r\n]+") do
+        table.insert(result, line)
+    end
+    return result
+end
+
+
 
 function onResourceStartTimer(resourceThatStarted)
 	local resourceName = getResourceName(resourceThatStarted)
@@ -23,7 +36,7 @@ function onResourceStartTimer(resourceThatStarted)
 
 
 			-- [[ Load maps first ]] -- 
-			local maps = getLines(fileOpen(path))
+			local maps = splitFileLines(fileOpen(path))
 			for _,map in pairs(maps) do
 				local list = loadMap(resourceName,map)
 				if list then
@@ -38,7 +51,7 @@ function onResourceStartTimer(resourceThatStarted)
 				end
 			end
 
-			local zones = getLines(fileOpen(path))
+			local zones = splitFileLines(fileOpen(path))
 			for _,zone in pairs(zones) do
 				local list = loadZone(resourceName,zone)
 				if list then

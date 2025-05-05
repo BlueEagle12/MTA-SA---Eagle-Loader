@@ -105,6 +105,7 @@ for _, data in pairs(objectFlags) do
 end
 
 function countCommas(str)
+    local str = str or ""
     local _, count = str:gsub(",", "")
     return count
 end
@@ -199,13 +200,22 @@ function prepResourceIMGs(resourceName)
     end
 end
 
+function split(str, sep)
+    if type(str) ~= "string" or str == "" or not string.find(str, sep, 1, true) then
+        return false
+    end
 
+    local result = {}
+    for token in string.gmatch(str, "([^" .. sep .. "]+)") do
+        table.insert(result, token)
+    end
 
+    if #result == 0 then
+        return false
+    end
 
-
-
-
-
+    return result
+end
 
 function showNearbyBuildings(_,radius)
     local px, py, pz = getElementPosition(localPlayer)
@@ -278,3 +288,6 @@ function showNearbyObjects(_,radius)
 end
 
 addCommandHandler("nearbyobjects", showNearbyObjects)
+
+
+

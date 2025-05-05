@@ -25,6 +25,7 @@
     <script type="client" src="client/definitionProcessor_C.lua" />
     <script type="client" src="client/waterProccessor_C.lua" />
     <script type="client" src="client/mapProcessor_C.lua" />
+    <script type="client" src="client/alpha_fix.lua" />
 
     <!-- Client Exported Functions -->
     <export function="loadMapDefinitions" type="client" />
