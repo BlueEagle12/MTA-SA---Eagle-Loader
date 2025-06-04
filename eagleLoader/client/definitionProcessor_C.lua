@@ -34,6 +34,7 @@ lodParents = {}
 backFaceCull = {}
 uniqueIDs = {}
 textureIDs = {}
+definedProperties = {}
 
 
 if engineStreamingSetMemorySize then -- Increases maximum streaming memory if on nightly
@@ -76,6 +77,9 @@ function loadMapDefinitions(resourceName, mapDefinitions, last)
         end
 
         if streamEverything or validID[data.id] then
+
+            definedProperties[data.id] = definedProperties[data.id] or {}
+
             local zone = data.zone
             local lodDistance = tonumber(data.lodDistance) or 200
             local lodEnabled = (data.lod == 'true')
@@ -100,37 +104,25 @@ function loadMapDefinitions(resourceName, mapDefinitions, last)
             end
 
             for i,v in pairs(objectFlags) do
-                if data[v.name] then
-                    engineSetModelFlag(modelID,v.name,true)
+                if v.fun then
+                    if data[v.name] then
+                        definedProperties[data.id][v.fun] = v.value
+                    end
                 else
-                    engineSetModelFlag(modelID,v.name,false)
+                    engineSetModelFlag(modelID,v.name,data[v.name] or false)
                 end
             end
 
-
-            if fileExists(string.format(":%s/imgs/dff.img", resourceName)) then
-                if split(data.txd,',') then
-                    txdTable = split(data.txd,',')
-                    for ti=0,#txdTable do
-                        loadImgAsset('txd', txdTable[ti], resourceName, modelID)
-                    end
-                else
-                    loadImgAsset('txd', data.txd, resourceName, modelID)
+            if split(data.txd,',') then
+                txdTable = split(data.txd,',')
+                for ti=0,#txdTable do
+                    tryLoadAsset('txd', txdTable[ti], resourceName, zone, modelID)
                 end
-                loadImgAsset('col', data.col, resourceName, modelID)
-                loadImgAsset('dff', data.id, resourceName, modelID)
             else
-                if split(data.txd,',') then
-                    txdTable = split(data.txd,',')
-                    for ti=0,#txdTable do
-                        loadAsset('txd', txdTable[ti], resourceName, zone, modelID)
-                    end
-                else
-                    loadAsset('txd', data.txd, resourceName, zone, modelID)
-                end
-                loadAsset('col', data.col, resourceName, zone, modelID)
-                loadAsset('dff', data.id, resourceName, zone, modelID, data['draw_last'] or data['additive'])
+                tryLoadAsset('txd', data.txd, resourceName, zone, modelID)
             end
+            tryLoadAsset('col', data.col, resourceName, zone, modelID)
+            tryLoadAsset('dff', data.dff or data.id, resourceName, zone, modelID, data['draw_last'] or data['additive'])
 
             backFaceCull[data.id] = data['disable_backface_culling']
 
@@ -145,6 +137,17 @@ function loadMapDefinitions(resourceName, mapDefinitions, last)
         end
     end)
 end
+
+function tryLoadAsset(assetType, fileName, resourceName, zone, modelID, ...)
+    if fileExists(string.format(":%s/imgs/%s.img", resourceName, assetType)) then
+        loadImgAsset(assetType, fileName, resourceName, modelID)
+    else
+        if findFile(fileName, assetType, resourceName, zone) then
+            loadAsset(assetType, fileName, resourceName, zone, modelID, ...)
+        end
+    end
+end
+
 
 function findFile(assetName,assetType,resourceName,zone)
     local assetPath = string.format(":%s/zones/%s/%s/%s.%s", resourceName, zone, assetType, assetName, assetType)
@@ -248,32 +251,6 @@ function loaded(resourceName)
 end
 
 
-
-
-
-
-function onClientElementStreamIn()
-	local validElement = isElement(source)
-
-	if (not validElement) then
-		return false
-	end
-
-
-    local model = getElementModel(source)
-
-    for i,v in pairs(idCache) do
-        if (v == model) then
-            outputDebugString2(string.format('%s: %s Streamed!', v ,i))
-        end
-    end
-
-end
-addEventHandler("onClientElementStreamIn", resourceRoot, onClientElementStreamIn)
-
-
-
-
 function removeWorldMapConfirm()
 
     if removeDefaultMap then
@@ -370,6 +347,12 @@ function setElementStream(object, newModel, streamNew, initial, lodParent,unique
                 itemIDList[id] = itemIDList[id] or {}
                 table.insert(itemIDList[id],object)
             end
+            
+            local properties = definedProperties[id] or {} -- Fall back if non existant
+
+            for i,v in ipairs(definedProperties) do
+                i(id,v)
+            end
 
 
             if highDefLODs and lodParent then
@@ -388,6 +371,7 @@ function setElementStream(object, newModel, streamNew, initial, lodParent,unique
 
                     prepTime(build, getElementModel(object))
 
+                    setElementCollisionsEnabled(build,false)
                 end
             else
 
@@ -408,7 +392,7 @@ function setElementStream(object, newModel, streamNew, initial, lodParent,unique
                             selfLODList[object] = build
 
                             prepTime(build, getElementModel(object))
-                            
+                            setElementCollisionsEnabled(build,false)
                             print("SELF LOD")
                         end
                     else

@@ -33,5 +33,5 @@ lodAttach = {                           -- Anything that LODs should be attached
 -- Other
 -- ===========================
 
-alphaFixApply = {"*plant*", "*grass*", "*foliage*", "*flower*", "*leave*", "*fern*","*palm*", "kbtree4_test", "FENCE8", "FENCE12"} -- List of textures to apply alpha fix to
+alphaFixApply = {"*plant*", "*grass*", "*foliage*", "*flower*", "*leave*", "*fern*","*palm*", "kbtree4_test"} -- List of textures to apply alpha fix to
 enableAlphaFix             = true       -- Fix alpha blending on trees and other objects, disable if it interfers with shaders (See alpha_fix.lua)

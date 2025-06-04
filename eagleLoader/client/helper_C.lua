@@ -97,11 +97,13 @@ objectFlags = {
     --{bit = 19, dec = 524288, hex = "0x80000", name = "-", description = "Unused special object type. Read, but not present in IDE files.", examples = "-"},
     {bit = 20, dec = 1048576, hex = "0x100000", name = "is_tag", description = "This model is a tag. Object will switch from mesh 2 to mesh 1 after getting sprayed by the player.", examples = "Tags"},
     {bit = 21, dec = 2097152, hex = "0x200000", name = "disable_backface_culling", description = "Disables backface culling – as a result the texture will be drawn on both sides of the model.", examples = "Roads, houses, trees, vehicle parts"},
-    {bit = 22, dec = 4194304, hex = "0x400000", name = "is_breakable_statue", description = "Object with this model can't be used as cover, i.e., peds won't try to cover behind this object.", examples = "Statue parts in atrium"}
+    {bit = 22, dec = 4194304, hex = "0x400000", name = "is_breakable_statue", description = "Object with this model can't be used as cover, i.e., peds won't try to cover behind this object.", examples = "Statue parts in atrium"},
+    {bit = 50, dec = 0, hex = "0x000000", name = "disable_collisions", description = "Objects with this flag will have collisions disabled", examples = "Certain vegitation items", fun = setElementCollisionsEnabled, value = false}
 }
 
 for _, data in pairs(objectFlags) do
     flagsTableNew[data.bit] = data.name
+    flagsTableNew[data.name] = data.name
 end
 
 function countCommas(str)
@@ -121,9 +123,15 @@ end
 function getFlags(attribute)
     local list = flagList(attribute.flags)
     for _, flag in pairs(list) do
-        local flagValue = tonumber(flag)
-        if flagsTableNew[flagValue] then
-            attribute[flagsTableNew[flagValue]] = true
+
+        if tonumber(flag) then
+            if flagsTableNew[tonumber(flag)] then
+                attribute[flagsTableNew[tonumber(flag)]] = true
+            end
+        else
+            if flagsTableNew[flagValue] then
+                attribute[flagsTableNew[flagValue]] = true
+            end
         end
     end
 end
