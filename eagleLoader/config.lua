@@ -14,6 +14,7 @@ maxIMG = 2                               -- How many of each IMG file will it ch
 
 streamEverything            = true       -- Set to true to stream all elements by default
 removeDefaultMap            = true       -- Disable if you'd like to keep the SA map
+removeDefaultInteriors      = true       -- Disable if you'd like to keep default interiors
 allocateDefaultIDs          = true       -- Allow the streamer to use IDs from SAs map, Disable if you'd like to keep the SA map or use buildings from it
 highDefLODs                 = false      -- Remove default LODs and just make every model its own LOD
 streamingMemoryAllowcation  = 512        -- (Default : 512) If you experience pop-in increase this. Max tested stable : 1024
@@ -33,5 +34,7 @@ lodAttach = {                           -- Anything that LODs should be attached
 -- Other
 -- ===========================
 
+
 alphaFixApply = {"*plant*", "*grass*", "*foliage*", "*flower*", "*leave*", "*fern*","*palm*", "kbtree4_test"} -- List of textures to apply alpha fix to
-enableAlphaFix             = true       -- Fix alpha blending on trees and other objects, disable if it interfers with shaders (See alpha_fix.lua)
+enableAlphaFix          = true       -- Fix alpha blending on trees and other objects, disable if it interfers with shaders (See alpha_fix.lua)
+enableAlphaFix2         = false      -- Enable experimental alpha fix shader. (WIP)

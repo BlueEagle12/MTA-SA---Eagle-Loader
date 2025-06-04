@@ -247,18 +247,7 @@ function loaded(resourceName)
     writeDebugFile()
 
     removeWorldMapConfirm()
-    setTimer(removeWorldMapConfirm,1000,5) -- Repeat because for some reason sometimes it doesn't remove initially
-end
-
-
-function removeWorldMapConfirm()
-
-    if removeDefaultMap then
-        if not mapUnloaded then
-            removeGameWorld()
-            setOcclusionsEnabled(false)
-        end
-    end
+    setTimer(removeWorldMapConfirm,1000,5)
 end
 
 
@@ -314,6 +303,7 @@ function setElementStream(object, newModel, streamNew, initial, lodParent,unique
         return
     end
 
+    print('strean')
     local id = getElementID(object) or newModel
 
     if id then
@@ -437,8 +427,15 @@ function streamObject(id,x,y,z,xr,yr,zr,interior,lodParent,uniqueID,int)
         local zr = tonumber(zr) or 0
 
         local obj = createObject(1337,x,y,z,xr,yr,zr)
-        
-        setElementInterior(obj,(interior or 0))
+
+        if tonumber(interior) then
+            if tonumber(interior) > 18 then
+                print('INTERIOR MALFUNCTION' .. interior)
+            else
+                setElementInterior(obj,(tonumber(interior) or 0))
+            end
+        end
+
         local cachedModel = true--idCache[id]
         
         if lodParent then
@@ -451,16 +448,12 @@ function streamObject(id,x,y,z,xr,yr,zr,interior,lodParent,uniqueID,int)
 
         backFaceCull[id] = true
 
+        --if (not int) then
+            setElementStream(obj,id,true,nil,lodParent,uniqueID)
+        --end
 
-        if cachedModel then
-
-
-            if (not int) then
-                setElementStream(obj,id,true,nil,lodParent,uniqueID)
-            end
-                
+        if cachedModel then  
             setElementID(obj,id)
-            
             return obj
         else
             outputDebugString2(string.format("Error: Model ID %s not found in cache.", id))
@@ -469,6 +462,7 @@ function streamObject(id,x,y,z,xr,yr,zr,interior,lodParent,uniqueID,int)
         outputDebugString2("Error: Trying to create invalid object.")
     end
 end
+
 
 function streamBuilding(id,x,y,z,xr,yr,zr,interior,lodParent,uniqueID,int)
     if id then
@@ -482,15 +476,15 @@ function streamBuilding(id,x,y,z,xr,yr,zr,interior,lodParent,uniqueID,int)
 
         local cachedModel = true --idCache[id]
 
-
+        --if (not int) then
+            setElementStream(build,id,true,nil,lodParent,uniqueID)
+        --end
+                
         if cachedModel then
             if (x > -3000) and (x < 3000) and (y > -3000) and (y < 3000) then
                 
                 local build = createBuilding(1337,x,y,z,xr,yr,zr,(interior == 0 and nil or interior))
                 
-                if (not int) then
-                    setElementStream(build,id,true,nil,lodParent,uniqueID)
-                end
 
                 if lodParent then
                     lodParents[build] = lodParent
@@ -515,14 +509,14 @@ function onElementDataChange(dataName, oldValue)
 
     if dataName == "id" and isElement(source) then
         local newId = getElementID(source)
-
+        print(newId)
         if newId and idCache[newId] and newId ~= oldValue then
             setElementStream(source, newId)
         end
     end
 end
 
---addEventHandler("onElementDataChange", root, onElementDataChange)
+addEventHandler("onElementDataChange", root, onElementDataChange)
 
 function unloadMapDefinitions(name)
 

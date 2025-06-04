@@ -23,6 +23,7 @@ end
 
 
 
+
 function onResourceStartTimer(resourceThatStarted)
 	local resourceName = getResourceName(resourceThatStarted)
 	local path = ((":%s/%s"):format(resourceName,'eagleZones.txt'))
@@ -68,11 +69,7 @@ function onResourceStartTimer(resourceThatStarted)
 		end
 
 
-		if removeDefaultMap then
-			setWaterLevel (-10000000)
-			removeGameWorld()
-			setOcclusionsEnabled(false)
-		end
+		removeWorldMapConfirm()
 		
 		streamMapElements(resourceName,elementList)
 
@@ -84,6 +81,22 @@ function onResourceStartTimer(resourceThatStarted)
 
 		parseWaterDat(waterPath,resourceName)
 	end
+end
+
+
+function removeWorldMapConfirm()
+    if removeDefaultMap then
+        setWaterLevel (-10000000)
+
+        if removeDefaultInteriors then
+            removeGameWorld()
+        else
+            for i = 321, 18630 do
+                removeWorldModel(i, 10000, 0, 0, 0, 0)
+            end
+        end
+        setOcclusionsEnabled(false)
+    end
 end
 
 addEventHandler( "onClientResourceStart", root, onResourceStartTimer)
