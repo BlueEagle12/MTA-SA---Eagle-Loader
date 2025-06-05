@@ -63,8 +63,8 @@ function removeWorldMapConfirm(water)
             removeGameWorld()
         else
             for i = 0, 50000 do
-                removeWorldModel(i, 5000, 0, 0, 0)
-                removeWorldModel(i, 5000, 0, 0, 13)
+                removeWorldModel(i, 5000, 0, 0, 0,0)
+                removeWorldModel(i, 5000, 0, 0, 0,13)
             end
         end
         setOcclusionsEnabled(false)
