@@ -303,7 +303,6 @@ function setElementStream(object, newModel, streamNew, initial, lodParent,unique
         return
     end
 
-    print('strean')
     local id = getElementID(object) or newModel
 
     if id then
@@ -383,7 +382,6 @@ function setElementStream(object, newModel, streamNew, initial, lodParent,unique
 
                             prepTime(build, getElementModel(object))
                             setElementCollisionsEnabled(build,false)
-                            print("SELF LOD")
                         end
                     else
                         lodParents[object] = lodParent
@@ -448,9 +446,9 @@ function streamObject(id,x,y,z,xr,yr,zr,interior,lodParent,uniqueID,int)
 
         backFaceCull[id] = true
 
-        --if (not int) then
+        if (not int) then
             setElementStream(obj,id,true,nil,lodParent,uniqueID)
-        --end
+        end
 
         if cachedModel then  
             setElementID(obj,id)
@@ -476,9 +474,9 @@ function streamBuilding(id,x,y,z,xr,yr,zr,interior,lodParent,uniqueID,int)
 
         local cachedModel = true --idCache[id]
 
-        --if (not int) then
+        if (not int) then
             setElementStream(build,id,true,nil,lodParent,uniqueID)
-        --end
+        end
                 
         if cachedModel then
             if (x > -3000) and (x < 3000) and (y > -3000) and (y < 3000) then
