@@ -1,33 +1,43 @@
+-- Global asset/model cache tables
 globalCache = {}
-idCache = {}
-useLODs = {}
+idCache     = {}
+useLODs     = {}
+reverseID   = {}
 
--- Request a model ID
+-- Request a unique model ID for a given logical model key
 function requestModelID(modelID)
+    if not modelID then return false end
+
     local cachedID = idCache[modelID]
-    
-    if not cachedID then
-        cachedID = engineRequestModel('object')
-        
-        if cachedID > 19999 then
-            cachedID = nil
-        end
+    if cachedID then
+        return cachedID
+    end
 
-        if not cachedID and allocateDefaultIDs then
-            cachedID = engineRequestSAModel('object')
-        end
+    local newID = engineRequestModel('object')
+    if newID and newID <= 19999 then
+        idCache[modelID] = newID
 
-        if cachedID then
-            idCache[modelID] = cachedID
-            return cachedID, true
+        reverseID[newID] = modelID
+        return newID, true
+    end
+
+    -- Fallback: allocate from SA pool if configured
+    if not newID and allocateDefaultIDs then
+        newID = engineRequestSAModel('object')
+        if newID then
+            idCache[modelID] = newID
+
+            reverseID[newID] = modelID
+            return newID, true
         end
     end
 
-    return cachedID or false
+    return false
 end
 
-
+-- Generic asset loader with caching per resource
 local function requestAsset(path, resourceName, loadFunc)
+    if not (path and resourceName and loadFunc) then return false end
 
     globalCache[resourceName] = globalCache[resourceName] or {}
 
@@ -38,6 +48,7 @@ local function requestAsset(path, resourceName, loadFunc)
     return globalCache[resourceName][path] or false
 end
 
+-- Specialized asset requests
 function requestTextureArchive(path, resourceName)
     return requestAsset(path, resourceName, engineLoadTXD)
 end
@@ -50,13 +61,9 @@ function requestModel(path, resourceName)
     return requestAsset(path, resourceName, engineLoadDFF)
 end
 
+-- Release all cached assets for a given resource
 function releaseCache(resourceName)
-    if globalCache[resourceName] then
-        for path in pairs(globalCache[resourceName]) do
-            globalCache[resourceName][path] = nil
-        end
-        globalCache[resourceName] = nil
-        return true
-    end
-    return false
+    if not resourceName or not globalCache[resourceName] then return false end
+    globalCache[resourceName] = nil
+    return true
 end

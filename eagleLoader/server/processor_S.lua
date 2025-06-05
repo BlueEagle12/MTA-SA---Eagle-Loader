@@ -10,11 +10,17 @@ addEvent( "onPlayerLoad", true )
 addEventHandler( "onPlayerLoad", resourceRoot, playerLoaded )
 
 
-function onResourceStop(resource) -- // Trigger the client event on resource stop ONLY when it stops on the server side, this is to prevent exit times from being extreme.
-	local rName = getResourceName(resource)
-	triggerClientEvent ( root, "resourceStop", root, rName )
+function onResourceStop(stoppedResource) -- // Trigger the client event on resource stop ONLY when it stops on the server side, this is to prevent exit times from being extreme.
+	if getResourceName(stoppedResource) ~= getResourceName(getThisResource()) then
+		local rName = getResourceName(stoppedResource)
+		triggerClientEvent ( root, "resourceStop", root, rName )
+	end
 end
 addEventHandler( "onResourceStop", root, onResourceStop)
+
+
+
+
 
 function streamObject(id,x,y,z,xr,yr,zr,interior,lod)
 	local x = x or 0

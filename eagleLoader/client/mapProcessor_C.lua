@@ -2,18 +2,13 @@ resourceLoaded = {}
 mapUnloaded = false
 lodIDList = {}
 
-function getLines(file)
-	local fData = fileRead(file, fileGetSize(file))
-	local fProccessed = split(fData,10) -- Split the lines
-	fileClose (file)
-	return fProccessed
-end
-
-function splitFileLines(file)
-	local data = fileRead(file, fileGetSize(file))
-	fileClose (file)
-
-
+-- Utility: Read all lines from a file handle, returns a table of lines
+local function fileToLines(fh)
+    if not fh then return {} end
+    local size = fileGetSize(fh)
+    if not size or size == 0 then fileClose(fh); return {} end
+    local data = fileRead(fh, size)
+    fileClose(fh)
     local result = {}
     for line in data:gmatch("[^\r\n]+") do
         table.insert(result, line)
@@ -21,136 +16,102 @@ function splitFileLines(file)
     return result
 end
 
-
-
-
-function onResourceStartTimer(resourceThatStarted)
-	local resourceName = getResourceName(resourceThatStarted)
-	local path = ((":%s/%s"):format(resourceName,'eagleZones.txt'))
-	local waterPath = ((":%s/%s"):format(resourceName,'water.dat'))
-	local exists = fileExists(path) --// Confirm eagleZones exists, if so latch onto this resource.
-	local definitionList = {}
-	local elementList = {}
-	
-	if exists then
-		if not resourceLoaded[resourceName] then -- Confirm resource is not already loaded
-
-
-			-- [[ Load maps first ]] -- 
-			local maps = splitFileLines(fileOpen(path))
-			for _,map in pairs(maps) do
-				local list = loadMap(resourceName,map)
-				if list then
-					for i,v in ipairs(list) do
-						table.insert(elementList,v)
-
-						local lod = v.lodParent
-						if lod then
-							lodIDList[lod] = true
-						end
-					end
-				end
-			end
-
-			local zones = splitFileLines(fileOpen(path))
-			for _,zone in pairs(zones) do
-				local list = loadZone(resourceName,zone)
-				if list then
-					for i,v in pairs(list) do
-
-						if (lodIDList[v.id] and highDefLODs) then
-							-- Ignore
-						else
-							table.insert(definitionList,v)
-						end
-					end
-				end
-			end
-		end
-
-
-		removeWorldMapConfirm()
-		
-		streamMapElements(resourceName,elementList)
-
-		local last = definitionList[#definitionList]
-		if last then
-			local lastID = last.id
-			loadMapDefinitions(resourceName,definitionList,lastID)
-		end
-
-		parseWaterDat(waterPath,resourceName)
-	end
+-- Load a zone .definition file (returns table of attribute tables)
+function loadZone(resourceName, zone)
+    zone = zone:gsub("%s+", "")
+    local path = (":%s/zones/%s/%s.definition"):format(resourceName, zone, zone)
+    if not fileExists(path) then
+        print(string.format("Unable to find zone: %s", path))
+        return
+    end
+    local xml = xmlLoadFile(path)
+    if not xml then return end
+    local defs = {}
+    for _, node in ipairs(xmlNodeGetChildren(xml)) do
+        local attributes = xmlNodeGetAttributes(node)
+        getFlags(attributes)
+        table.insert(defs, attributes)
+    end
+    xmlUnloadFile(xml)
+    return defs
 end
 
+-- Load a zone .map file (returns table of attribute tables with .type field)
+function loadMap(resourceName, zone)
+    zone = zone:gsub("%s+", "")
+    local path = (":%s/zones/%s/%s.map"):format(resourceName, zone, zone)
+    if not fileExists(path) then return end
+    local xml = xmlLoadFile(path)
+    if not xml then return end
+    local entries = {}
+    for _, node in ipairs(xmlNodeGetChildren(xml)) do
+        local attributes = xmlNodeGetAttributes(node)
+        attributes.type = xmlNodeGetName(node)
+        table.insert(entries, attributes)
+    end
+    xmlUnloadFile(xml)
+    return entries
+end
 
-function removeWorldMapConfirm()
+-- Remove world map and/or interiors as needed
+function removeWorldMapConfirm(water)
     if removeDefaultMap then
-        setWaterLevel (-10000000)
-
+        if water then
+            setWaterLevel(-10000000)
+        end
         if removeDefaultInteriors then
             removeGameWorld()
         else
             for i = 321, 18630 do
                 removeWorldModel(i, 10000, 0, 0, 0, 0)
+                removeWorldModel(i, 10000, 0, 0, 0, 254)
+                removeWorldModel(i, 10000, 0, 0, 0, 50)
             end
         end
         setOcclusionsEnabled(false)
     end
 end
 
-addEventHandler( "onClientResourceStart", root, onResourceStartTimer)
+-- Handles loading zones, maps, and water on resource start
+function onResourceStartTimer(resourceThatStarted)
+    local resourceName = getResourceName(resourceThatStarted)
+    local zoneFilePath = (":%s/eagleZones.txt"):format(resourceName)
+    local waterFilePath = (":%s/water.dat"):format(resourceName)
+    if not fileExists(zoneFilePath) or resourceLoaded[resourceName] then return end
 
-function loadZone(resourceName,zone)
+    local elementList, definitionList = {}, {}
 
-	local zone = zone:gsub("%s+", "")
-	
-	local path = (":%s/zones/%s/%s.definition"):format(resourceName, zone, zone)
-	
-	local test = fileExists(path)
+    -- Load maps first
+    local fh = fileOpen(zoneFilePath)
+    local maps = fileToLines(fh)
+    for _, map in ipairs(maps) do
+        for _, v in ipairs(loadMap(resourceName, map) or {}) do
+            table.insert(elementList, v)
+            if v.lodParent then lodIDList[v.lodParent] = true end
+        end
+    end
 
-	local zoneDefinitions = xmlLoadFile(path)
-	
-	if zoneDefinitions then
+    -- Then definitions
+    local fh2 = fileOpen(zoneFilePath)
+    local zones = fileToLines(fh2)
+    for _, zone in ipairs(zones) do
+        for _, v in ipairs(loadZone(resourceName, zone) or {}) do
+            if not (lodIDList[v.id] and highDefLODs) then
+                table.insert(definitionList, v)
+            end
+        end
+    end
 
-		local sDefintions = xmlNodeGetChildren(zoneDefinitions)
-		local newTable = {}
-		
-		for _,definiton in pairs (sDefintions) do
-			local attributes = xmlNodeGetAttributes(definiton)
-			getFlags(attributes)
-			table.insert(newTable,attributes)
-		end
-		
-		xmlUnloadFile(zoneDefinitions)
-		return newTable
-	else
-		print(string.format("Unable to find zone: %s", path))
-	end
+    removeWorldMapConfirm(true)
+    engineRestreamWorld()
+    streamMapElements(resourceName, elementList)
+
+    local lastDef = definitionList[#definitionList]
+    if lastDef then
+        loadMapDefinitions(resourceName, definitionList, lastDef.id)
+    end
+
+    parseWaterDat(waterFilePath, resourceName)
 end
 
-
-function loadMap(resourceName,zone)
-	local zone = zone:gsub("%s+", "")
-	
-	local path = (":%s/zones/%s/%s.map"):format(resourceName, zone, zone)
-
-	if fileExists(path) then -- Removed debug because some zones are strictly definition zones.
-		local mapContents = xmlLoadFile(path)
-
-		local sContents = xmlNodeGetChildren(mapContents)
-		local newTable = {}
-		
-		if sContents then
-			for _,definiton in ipairs (sContents) do
-				local attributes = xmlNodeGetAttributes(definiton)
-				local elementType = xmlNodeGetName(definiton)
-				attributes.type = elementType
-				table.insert(newTable,attributes)
-			end
-			
-			xmlUnloadFile(mapContents)
-		end
-		return newTable
-	end
-end
+addEventHandler("onClientResourceStart", root, onResourceStartTimer)

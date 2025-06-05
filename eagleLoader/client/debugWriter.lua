@@ -1,24 +1,27 @@
+local debugLines = {}
 
-debugLines = {}
-function outputDebugString2(string,a)
-    outputDebugString(string,a)
-
-    table.insert(debugLines,string)
+function outputDebugString2(str, level)
+    outputDebugString(str, level)
+    table.insert(debugLines, str)
 end
 
-
-
 function writeDebugFile()
-    -- Create (or overwrite) the meta.xml file in your resource
+    if not debugLines or #debugLines == 0 then
+        outputDebugString("No debug lines to write.", 3)
+        return false
+    end
+
     local f = fileCreate('debug.txt')
+    if not f then
+        outputDebugString("Failed to create debug.txt!", 1)
+        return false
+    end
 
-
-    for i, entry in pairs(debugLines) do
-        fileWrite(f, entry.."\n")
+    for _, entry in ipairs(debugLines) do
+        fileWrite(f, entry .. "\n")
     end
 
     fileClose(f)
-
-    outputDebugString("Wrote debug to: " .. 'debug.txt')
+    outputDebugString("Wrote debug to: debug.txt")
     return true
 end
