@@ -62,16 +62,9 @@ function removeWorldMapConfirm(water)
         if removeDefaultInteriors then
             removeGameWorld()
         else
-            for i = 0, 20000 do
-                removeWorldModel(i, 10000, 0, 0, 0, 0)
-                removeWorldModel(i, 10000, 0, 0, 0, 256)
-                removeWorldModel(i, 10000, 0, 0, 0, 1024)
-                removeWorldModel(i, 10000, 0, 0, 0, 768)
-                removeWorldModel(i, 10000, 0, 0, 0, 4096)
-                removeWorldModel(i, 10000, 0, 0, 0, 274)
-                removeWorldModel(i, 10000, 0, 0, 0, 6114)
-                removeWorldModel(i, 10000, 0, 0, 0, 2048)
-                removeWorldModel(i, 10000, 0, 0, 0, 128)
+            for i = 0, 50000 do
+                removeWorldModel(i, 5000, 0, 0, 0)
+                removeWorldModel(i, 5000, 0, 0, 13)
             end
         end
         setOcclusionsEnabled(false)
