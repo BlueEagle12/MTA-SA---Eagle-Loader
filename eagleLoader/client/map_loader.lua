@@ -63,12 +63,35 @@ function removeWorldMapConfirm(water)
             removeGameWorld()
         else
             for i = 0, 50000 do
-                removeWorldModel(i, 5000, 0, 0, 0,0)
-                removeWorldModel(i, 5000, 0, 0, 0,13)
+                removeWorldModel(i, 5000, 0, 0, 0, 0)
+                removeWorldModel(i, 5000, 0, 0, 0, 13)
             end
         end
         setOcclusionsEnabled(false)
     end
+end
+
+function streamMapElements(resourceName, elementList)
+    local objects = {}
+    for _, element in ipairs(elementList or {}) do
+        if not (lodIDList[element.id] and highDefLODs) then
+            local newElement = streamElement(
+                element.id,
+                element.type,
+                {tonumber(element.posX) or 0, tonumber(element.posY) or 0, tonumber(element.posZ) or 0},
+                {tonumber(element.rotX) or 0, tonumber(element.rotY) or 0, tonumber(element.rotZ) or 0},
+                element.interior,
+                element.dimension,
+                element.lodParent,
+                element.uniqueID,
+                true
+            )
+            if newElement then
+                table.insert(objects, newElement)
+            end
+        end
+    end
+    return objects
 end
 
 -- Handles loading zones, maps, and water on resource start

@@ -1,40 +1,44 @@
-
-
+-- ===========================
+--       IMG Loading
+-- ===========================
+IMGNames = { "dff", "col", "txd", "custom" }  -- IMG archives to scan for per resource
+maxIMG = 4                                    -- Number of IMG files to check (e.g. txd_1.img, txd_2.img, ...)
 
 -- ===========================
--- IMG loading
--- ===========================
-IMGNames = {'dff','col','txd','custom'}  -- What IMG file names should the streamer look for
-maxIMG = 2                               -- How many of each IMG file will it check for ("Example txd_1.img, txd_2.img")
-
-
--- ===========================
--- Streaming & Distances
+--   Streaming & Distances
 -- ===========================
 
-streamEverything            = true       -- Set to true to stream all elements by default
-removeDefaultMap            = true       -- Disable if you'd like to keep the SA map
-removeDefaultInteriors      = true       -- Disable if you'd like to keep default interiors
-allocateDefaultIDs          = true       -- Allow the streamer to use IDs from SAs map, Disable if you'd like to keep the SA map or use buildings from it
-highDefLODs                 = false      -- Remove default LODs and just make every model its own LOD
-streamingMemoryAllowcation  = 512        -- (Default : 512) If you experience pop-in increase this. Max tested stable : 1024
-streamingBufferAllowcation  = 150        -- (Default : 150) If you experience pop-in increase this. Max tested stable : 512
-drawDistanceMultiplier      = 1.5        -- (Default : 1.5) Increase drawdistance by this amount, if you experience pop-in or performance issues lower this
-modelCrashDebug             = false      -- Do not load map, but at 0,0,0 spawn every object consecutively and output the last spawned model in debug.txt; use this to track down crashes
+streamEverything             = true     -- Stream all elements by default
+removeDefaultMap             = true     -- Remove SA world map
+removeDefaultInteriors       = true     -- Remove interiors (set false to keep stock ones)
+allocateDefaultIDs           = true     -- Use model IDs from SA if needed (disable to reserve original IDs)
+highDefLODs                  = false    -- Use model itself as LOD; disables separate default LODs
+streamingMemoryAllowcation   = 512      -- (MB) Memory for streamed assets. Raise for big maps (default: 512, max: 1024)
+streamingBufferAllowcation   = 150      -- (MB) Streaming buffer size (default: 150, max: 512)
+drawDistanceMultiplier       = 1        -- Multiply all draw distances (set lower for performance if needed)
 
 -- ===========================
--- LOD Attachments
+--           Debug
 -- ===========================
-lodAttach = {                           -- Anything that LODs should be attached to, currently includes Tram for LC.
+
+streamDebug          = false  -- Output debug messages
+modelCrashDebug      = false  -- Crash finder: spawn all objects at 0,0,0 for testing
+modelCrashDebugRate  = 25     -- Time (ms) between spawn attempts in crash debug
+despawnDebug         = false  -- Remove object immediately after streaming in crash debug
+crashIndex           = 0      -- Current index for crash debugging
+
+-- ===========================
+--        LOD Attachments
+-- ===========================
+
+lodAttach = {                -- Set true for model IDs/names whose LODs should be attached (ex: Tram)
     ["Tram"] = true
 }
 
-
 -- ===========================
--- Other
+--           Other
 -- ===========================
 
-
-alphaFixApply = {"*plant*", "*grass*", "*foliage*", "*flower*", "*leave*", "*fern*","*palm*", "kbtree4_test"} -- List of textures to apply alpha fix to
-enableAlphaFix          = true       -- Fix alpha blending on trees and other objects, disable if it interfers with shaders (See alpha_fix.lua)
-enableAlphaFix2         = false      -- Enable experimental alpha fix shader. (WIP)
+alphaFixApply      = { "*plant*", "*grass*", "*foliage*", "*flower*", "*leave*", "*fern*", "*palm*", "kbtree4_test" }
+enableAlphaFix     = true    -- Apply alpha fix shader to plant/foliage textures
+enableAlphaFix2    = false   -- Use experimental (alternate) alpha fix shader

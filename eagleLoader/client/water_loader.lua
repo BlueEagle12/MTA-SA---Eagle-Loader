@@ -1,11 +1,18 @@
--- World limits
+-- =========================
+-- Water Config
+-- =========================
 local WORLD_MIN = -3000
 local WORLD_MAX = 3000
 local Z_MIN = -1000
 local Z_MAX = 1000
+local waterDebug = false
 
--- Water offsets
 local shiftX, shiftY, shiftZ = 0, 0, 0
+
+
+-- ==============================
+-- Water Loader Core
+-- ==============================
 
 function clamp(val, min, max)
     return math.max(min, math.min(max, val))
@@ -63,9 +70,36 @@ function parseWaterDat(filePath,resourceName)
         outputDebugString2("Error: No water.dat file present.")
     end
 end
+
+
+function createWater2(x1, y1, z1, x2, y2, z2, x3, y3, z3, x4, y4, z4,name)
+    createWater(x1, y1, z1, x2, y2, z2, x3, y3, z3, x4, y4, z4)
+
+    if waterDebug then
+        createRadarFromWaterZone(x1, y1, z1, x2, y2, z2, x3, y3, z3, x4, y4, z4,name)
+    end
+end
+
+
+function createWaterPlanes(waterData,resourceName)
+    for _, w in ipairs(waterData) do
+        local water = createWater2(w.x1, w.y1, w.z1,
+                    w.x2, w.y2, w.z2,
+                    w.x3, w.y3, w.z3,
+                    w.x4, w.y4, w.z4,w.name)
+        if water then
+            if resource[resourceName] then
+                table.insert(resource[resourceName], water)
+            end
+        end 
+    end
+end
+
+-- ==============================
+-- Debug system
+-- ==============================
+
 radarAreas = {}
-
-
 
 function createRadarFromWaterZone(x1, y1, z1, x2, y2, z2, x3, y3, z3, x4, y4, z4,rName)
     -- Find min/max XY from all corners
@@ -105,26 +139,3 @@ addCommandHandler("currentZone", function()
     end
     outputChatBox("You are in zone: " .. zoneName, 255, 255, 0)
 end)
-
-
-
-
-function createWater2(x1, y1, z1, x2, y2, z2, x3, y3, z3, x4, y4, z4,name)
-    createWater(x1, y1, z1, x2, y2, z2, x3, y3, z3, x4, y4, z4)
-    --createRadarFromWaterZone(x1, y1, z1, x2, y2, z2, x3, y3, z3, x4, y4, z4,name)-- // Debug
-end
-
-
-function createWaterPlanes(waterData,resourceName)
-    for _, w in ipairs(waterData) do
-        local water = createWater2(w.x1, w.y1, w.z1,
-                    w.x2, w.y2, w.z2,
-                    w.x3, w.y3, w.z3,
-                    w.x4, w.y4, w.z4,w.name)
-        if water then
-            if resource[resourceName] then
-                table.insert(resource[resourceName], water)
-            end
-        end 
-    end
-end

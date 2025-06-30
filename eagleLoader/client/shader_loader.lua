@@ -1,15 +1,18 @@
+--=============================--
+--   Alpha Fix Shader Loader   --
+--=============================--
+
 local RAW_ALPHA_FIX_SHADER = [[
 technique AlphaFix {
     pass P0 { }
 }
 ]]
 
--- Shader file path and textures to apply must be set
-local ALPHA_FIX_SHADER_PATH = "client/alpha_fix.fx"  -- Change if needed
+local ALPHA_FIX_SHADER_PATH = "client/fx/alpha_fix.fx"  -- Use your .fx file or fallback to RAW string
 
--- Create shader up front (or set to nil if not using a file)
 local alphaFixShader = nil
 
+-- Creates the alpha fix shader, from file if enabled, otherwise from inline string
 local function createAlphaFixShader()
     if enableAlphaFix2 then
         alphaFixShader = dxCreateShader(ALPHA_FIX_SHADER_PATH, 1, 0, false, "object,world")
@@ -19,8 +22,8 @@ local function createAlphaFixShader()
     return alphaFixShader
 end
 
+-- Applies the alpha fix shader to the world textures in alphaFixApply list
 local function applyAlphaFix()
-    -- Create (or re-use) shader
     if not alphaFixShader then
         if not createAlphaFixShader() then
             outputDebugString("Failed to create alpha fix shader.", 1)
@@ -38,6 +41,7 @@ local function applyAlphaFix()
     end
 end
 
+-- Optionally auto-apply on resource start
 if enableAlphaFix then
     addEventHandler("onClientResourceStart", resourceRoot, applyAlphaFix)
 end
