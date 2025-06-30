@@ -4,10 +4,6 @@ Eagle map loader is a resource for MTA:SA that allows for easy and nearly instan
 
 ## Supported Features
 
-The following is a list of features this resource provides
-- [x] = Supported
-- [ ] = Planned support
-
 #### Objects
 
 - [X] Object placement
@@ -16,6 +12,7 @@ The following is a list of features this resource provides
 - [x] LOD placement and assignment
 - [X] Zone based map support
 - [x] Compatability with default SA map
+- [x] Compatability with default SA interiors
 - [x] IMG support
 
 #### Definitions
@@ -27,6 +24,8 @@ The following is a list of features this resource provides
 - [X] Object Effects
 - [X] TObjs (Daytime / nighttime objects)
 - [X] Full flag support
+- [X] Custom flag support
+- [ ] Definition only resources (WIP)
 
 ## Usage
 
