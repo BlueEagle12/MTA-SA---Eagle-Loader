@@ -30,7 +30,7 @@ Eagle map loader is a resource for MTA:SA that allows for easy and nearly instan
 ## Usage
 
 1. [Download](https://github.com/BlueEagle12/MTA-SA---Eagle-Loader) 
-2. Place the folder 'eagleMapProccessor' in your resources folder
+2. Place the folder 'eagleLoader' (or zip file if you download a release) in your resources folder.
 3. Start the resource
 4. Start maps that use the resource
 
